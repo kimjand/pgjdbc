@@ -22,7 +22,6 @@ dependencies {
     // Make jmhCompileClasspath resolvable
     @Suppress("DEPRECATION")
     jmhCompileClasspath(platform(project(":bom")))
-    jmhRuntimeClasspath("com.ongres.scram:client:2.1")
     jmhImplementation(project(":postgresql"))
 //    jmhImplementation("com.google.guava:guava")
 //    jmhImplementation("org.codehaus.janino:commons-compiler")
