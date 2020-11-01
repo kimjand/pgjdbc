@@ -78,6 +78,12 @@ public class CompositeQueryParseTest {
   }
 
   @Test
+  public void testCompositeWithNamedBinds() {
+    assertEquals("select $1;/*cut*/\n select $1", reparse("select :a; select :b", true, true, true));
+    assertEquals("select $1;/*cut*/\n select $1", reparse("select :a; select :a", true, true, true));
+  }
+
+  @Test
   public void testTrailingSemicolon() {
     assertEquals("select 1", reparse("select 1;", true, false, true));
   }

@@ -189,7 +189,7 @@ public interface ParameterList {
 
   /**
    * Return a human-readable representation of a particular parameter in this ParameterList. If the
-   * parameter is not bound, returns "?".
+   * parameter is not bound, returns "?", or ":parameterName" in case the ParameterList was created with named parameters.
    *
    * @param index the 1-based parameter index to bind.
    * @param standardConformingStrings true if \ is not an escape character in strings literals
@@ -209,4 +209,6 @@ public interface ParameterList {
    * @return Object array containing the parameter values.
    */
   @Nullable Object @Nullable [] getValues();
+
+  int getIndex(String parameterName) throws SQLException;
 }

@@ -177,6 +177,11 @@ class CompositeParameterList implements V3ParameterList {
     return null; // unsupported
   }
 
+  @Override
+  public int getIndex(String parameterName) {
+    throw new RuntimeException("This should not be called");
+  }
+
   public void appendAll(ParameterList list) throws SQLException {
     // no-op, unsupported
   }

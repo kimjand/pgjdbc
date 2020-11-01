@@ -6,13 +6,7 @@
 
 package org.postgresql.core.v3;
 
-import org.postgresql.core.Field;
-import org.postgresql.core.NativeQuery;
-import org.postgresql.core.Oid;
-import org.postgresql.core.ParameterList;
-import org.postgresql.core.Query;
-import org.postgresql.core.SqlCommand;
-import org.postgresql.core.Utils;
+import org.postgresql.core.*;
 import org.postgresql.jdbc.PgResultSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -45,11 +39,13 @@ class SimpleQuery implements Query {
   }
 
   public ParameterList createParameterList() {
-    if (nativeQuery.bindPositions.length == 0) {
+    if (!nativeQuery.parameterCtx.hasParameters()) {
       return NO_PARAMETERS;
     }
 
-    return new SimpleParameterList(getBindCount(), transferModeRegistry);
+    return new SimpleParameterList(nativeQuery.parameterCtx.nativeParameterCount() * getBatchSize(),
+        transferModeRegistry,
+        nativeQuery.parameterCtx);
   }
 
   public String toString(@Nullable ParameterList parameters) {
@@ -69,13 +65,14 @@ class SimpleQuery implements Query {
   }
 
   /**
-   * <p>Return maximum size in bytes that each result row from this query may return. Mainly used for
+   * <p>Return maximum size in bytes that each result row from this query may return. Mainly used
+   * for
    * batches that return results.</p>
    *
    * <p>Results are cached until/unless the query is re-described.</p>
    *
    * @return Max size of result data in bytes according to returned fields, 0 if no results, -1 if
-   *         result is unbounded.
+   * result is unbounded.
    * @throws IllegalStateException if the query is not described
    */
   public int getMaxResultRowSize() {
@@ -173,8 +170,10 @@ class SimpleQuery implements Query {
       // 2) statement describe: bind 1 type is TIMESTAMP
       // 3) SimpleQuery.preparedTypes is updated to TIMESTAMP
       // ...
-      // 4.1) bind(name="S_01", ..., types={TIMESTAMP}) -> OK (since preparedTypes is equal to TIMESTAMP)
-      // 4.2) bind(name="S_01", ..., types={UNSPECIFIED}) -> OK (since the query was initially parsed with UNSPECIFIED)
+      // 4.1) bind(name="S_01", ..., types={TIMESTAMP}) -> OK (since preparedTypes is equal to
+      // TIMESTAMP)
+      // 4.2) bind(name="S_01", ..., types={UNSPECIFIED}) -> OK (since the query was initially
+      // parsed with UNSPECIFIED)
       // 4.3) bind(name="S_01", ..., types={DATE}) -> KO, unprepare and parse required
 
       int preparedType = preparedTypes[i];
@@ -184,8 +183,10 @@ class SimpleQuery implements Query {
           || !unspecified.get(i))) {
         if (LOGGER.isLoggable(Level.FINER)) {
           LOGGER.log(Level.FINER,
-              "Statement {0} does not match new parameter types. Will have to un-prepare it and parse once again."
-                  + " To avoid performance issues, use the same data type for the same bind position. Bind index (1-based) is {1},"
+              "Statement {0} does not match new parameter types. Will have to un-prepare it and " +
+                  "parse once again."
+                  + " To avoid performance issues, use the same data type for the same bind " +
+                  "position. Bind index (1-based) is {1},"
                   + " preparedType was {2} (after describe {3}), current bind type is {4}",
               new Object[]{statementName, i + 1,
                   Oid.toString(unspecified != null && unspecified.get(i) ? 0 : preparedType),
@@ -322,7 +323,7 @@ class SimpleQuery implements Query {
   }
 
   public final int getBindCount() {
-    return nativeQuery.bindPositions.length * getBatchSize();
+    return nativeQuery.parameterCtx.getPlaceholderCount() * getBatchSize();
   }
 
   private @Nullable Map<String, Integer> resultSetColumnNameIndexMap;
@@ -368,5 +369,6 @@ class SimpleQuery implements Query {
 
   private @Nullable Integer cachedMaxResultRowSize;
 
-  static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
+  static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null,
+      ParameterContext.EMPTY_CONTEXT);
 }
