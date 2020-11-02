@@ -13,11 +13,6 @@ import java.util.List;
 
 public class ParameterContext {
   public static final ParameterContext EMPTY_CONTEXT = new ParameterContext();
-
-  enum BindStyle {
-    POSITIONAL, NAMED
-  }
-
   private @Nullable BindStyle bindStyle = null;
   private @Nullable List<Integer> placeholderPositions = null;
   private @Nullable List<String> placeholderNames = null;
@@ -40,9 +35,15 @@ public class ParameterContext {
           + " parameter first.");
     }
 
-    if (placeholderPositions == null || placeholderAtPosition == null) {
+    if (bindStyle == null) {
       bindStyle = BindStyle.POSITIONAL;
+    }
+
+    if (placeholderPositions == null) {
       placeholderPositions = new ArrayList<>();
+    }
+
+    if (placeholderAtPosition == null) {
       placeholderAtPosition = new ArrayList<>();
     }
 
@@ -94,10 +95,19 @@ public class ParameterContext {
           + "positional parameter first.");
     }
 
-    if (placeholderPositions == null || placeholderAtPosition == null || placeholderNames == null) {
+    if (bindStyle == null) {
       bindStyle = BindStyle.NAMED;
+    }
+
+    if (placeholderPositions == null) {
       placeholderPositions = new ArrayList<>();
+    }
+
+    if (placeholderAtPosition == null) {
       placeholderAtPosition = new ArrayList<>();
+    }
+
+    if (placeholderNames == null) {
       placeholderNames = new ArrayList<>();
     }
 
@@ -131,5 +141,9 @@ public class ParameterContext {
 
   public List<Integer> getPlaceholderPositions() {
     return placeholderPositions;
+  }
+
+  enum BindStyle {
+    POSITIONAL, NAMED
   }
 }
