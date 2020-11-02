@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.core;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -9,7 +14,9 @@ import java.util.List;
 public class ParameterContext {
   public static final ParameterContext EMPTY_CONTEXT = new ParameterContext();
 
-  enum BindStyle {POSITIONAL, NAMED}
+  enum BindStyle {
+    POSITIONAL, NAMED
+  }
 
   @Nullable
   private BindStyle bindStyle = null;
@@ -24,16 +31,17 @@ public class ParameterContext {
       List<String> placeholderNames) throws SQLException {
     final ParameterContext ctx = new ParameterContext();
     assert placeholderPositions.size() == placeholderNames.size();
-    for (int i = 0; i < placeholderPositions.size(); i++)
+    for (int i = 0; i < placeholderPositions.size(); i++) {
       ctx.addNamedParameter(placeholderPositions.get(i), placeholderNames.get(i));
+    }
 
     return ctx;
   }
 
   public int addPositionalParameter(int position) throws SQLException {
     if (bindStyle == BindStyle.NAMED) {
-      throw new SQLException("Positional and named parameters cannot be combined! Saw named" +
-          " parameter first.");
+      throw new SQLException("Positional and named parameters cannot be combined! Saw named"
+          + " parameter first.");
     }
 
     if (placeholderPositions == null || placeholderAtPosition == null) {
@@ -86,8 +94,8 @@ public class ParameterContext {
 
   public int addNamedParameter(int position, String bindName) throws SQLException {
     if (bindStyle == BindStyle.POSITIONAL) {
-      throw new SQLException("Positional and named parameters cannot be combined! Saw " +
-          "positional parameter first.");
+      throw new SQLException("Positional and named parameters cannot be combined! Saw "
+          + "positional parameter first.");
     }
 
     if (placeholderPositions == null || placeholderAtPosition == null || placeholderNames == null) {

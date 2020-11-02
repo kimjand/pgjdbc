@@ -79,9 +79,9 @@ public class NativeQuery {
     sbuf.append(nativeSql, 0, parameterCtx.getPlaceholderPosition(0));
     for (int i = 1; i <= this.parameterCtx.getPlaceholderCount(); ++i) {
       sbuf.append(params[parameterCtx.getPlaceholderAtPosition(i - 1)]);
-      int nextBind = i < this.parameterCtx.getPlaceholderCount() ?
-          parameterCtx.getPlaceholderPosition(i) :
-          nativeSql.length();
+      int nextBind = i < this.parameterCtx.getPlaceholderCount()
+          ? parameterCtx.getPlaceholderPosition(i)
+          : nativeSql.length();
       sbuf.append(nativeSql, parameterCtx.getPlaceholderPosition(i - 1) + bindName(i).length(),
           nextBind);
     }

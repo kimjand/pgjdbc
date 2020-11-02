@@ -53,6 +53,7 @@ import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Date;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -62,6 +63,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -95,631 +97,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
     // TODO: this.wantsGeneratedKeysAlways = true;
 
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
-  }
-
-  @Override
-  public ResultSet executeQuery(String sql) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
-        PSQLState.WRONG_OBJECT_TYPE);
-  }
-
-  /*
-   * A Prepared SQL query is executed and its ResultSet is returned
-   *
-   * @return a ResultSet that contains the data produced by the * query - never null
-   *
-   * @exception SQLException if a database access error occurs
-   */
-  @Override
-  public ResultSet executeQuery() throws SQLException {
-    if (!executeWithFlags(0)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    return getSingleResultSet();
-  }
-
-  @Override
-  public int executeUpdate(String sql) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
-        PSQLState.WRONG_OBJECT_TYPE);
-  }
-
-  @Override
-  public int executeUpdate() throws SQLException {
-    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
-    checkNoResultUpdate();
-    return getUpdateCount();
-  }
-
-  @Override
-  public long executeLargeUpdate() throws SQLException {
-    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
-    checkNoResultUpdate();
-    return getLargeUpdateCount();
-  }
-
-  @Override
-  public boolean execute(String sql) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
-        PSQLState.WRONG_OBJECT_TYPE);
-  }
-
-  @Override
-  public boolean execute() throws SQLException {
-    return executeWithFlags(0);
-  }
-
-  public boolean executeWithFlags(int flags) throws SQLException {
-    try {
-      checkClosed();
-
-      if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
-        flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
-      }
-
-      execute(preparedQuery, preparedParameters, flags);
-
-      synchronized (this) {
-        checkClosed();
-        return (result != null && result.getResultSet() != null);
-      }
-    } finally {
-      defaultTimeZone = null;
-    }
-  }
-
-  protected boolean isOneShotQuery(@Nullable CachedQuery cachedQuery) {
-    if (cachedQuery == null) {
-      cachedQuery = preparedQuery;
-    }
-    return super.isOneShotQuery(cachedQuery);
-  }
-
-  @Override
-  public void closeImpl() throws SQLException {
-    if (preparedQuery != null) {
-      ((PgConnection) connection).releaseQuery(preparedQuery);
-    }
-  }
-
-  public void setNull(int parameterIndex, int sqlType) throws SQLException {
-    checkClosed();
-
-    if (parameterIndex < 1 || parameterIndex > preparedParameters.getParameterCount()) {
-      throw new PSQLException(
-        GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-          parameterIndex, preparedParameters.getParameterCount()),
-        PSQLState.INVALID_PARAMETER_VALUE);
-    }
-
-    int oid;
-    switch (sqlType) {
-      case Types.SQLXML:
-        oid = Oid.XML;
-        break;
-      case Types.INTEGER:
-        oid = Oid.INT4;
-        break;
-      case Types.TINYINT:
-      case Types.SMALLINT:
-        oid = Oid.INT2;
-        break;
-      case Types.BIGINT:
-        oid = Oid.INT8;
-        break;
-      case Types.REAL:
-        oid = Oid.FLOAT4;
-        break;
-      case Types.DOUBLE:
-      case Types.FLOAT:
-        oid = Oid.FLOAT8;
-        break;
-      case Types.DECIMAL:
-      case Types.NUMERIC:
-        oid = Oid.NUMERIC;
-        break;
-      case Types.CHAR:
-        oid = Oid.BPCHAR;
-        break;
-      case Types.VARCHAR:
-      case Types.LONGVARCHAR:
-        oid = connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED;
-        break;
-      case Types.DATE:
-        oid = Oid.DATE;
-        break;
-      case Types.TIME:
-      case Types.TIME_WITH_TIMEZONE:
-      case Types.TIMESTAMP_WITH_TIMEZONE:
-      case Types.TIMESTAMP:
-        oid = Oid.UNSPECIFIED;
-        break;
-      case Types.BOOLEAN:
-      case Types.BIT:
-        oid = Oid.BOOL;
-        break;
-      case Types.BINARY:
-      case Types.VARBINARY:
-      case Types.LONGVARBINARY:
-        oid = Oid.BYTEA;
-        break;
-      case Types.BLOB:
-      case Types.CLOB:
-        oid = Oid.OID;
-        break;
-      case Types.REF_CURSOR:
-        oid = Oid.REF_CURSOR;
-        break;
-      case Types.ARRAY:
-      case Types.DISTINCT:
-      case Types.STRUCT:
-      case Types.NULL:
-      case Types.OTHER:
-        oid = Oid.UNSPECIFIED;
-        break;
-      default:
-        // Bad Types value.
-        throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
-    }
-    preparedParameters.setNull(parameterIndex, oid);
-  }
-
-  public void setBoolean(@Positive int parameterIndex, boolean x) throws SQLException {
-    checkClosed();
-    // The key words TRUE and FALSE are the preferred (SQL-compliant) usage.
-    bindLiteral(parameterIndex, x ? "TRUE" : "FALSE", Oid.BOOL);
-  }
-
-  public void setByte(@Positive int parameterIndex, byte x) throws SQLException {
-    setShort(parameterIndex, x);
-  }
-
-  public void setShort(@Positive int parameterIndex, short x) throws SQLException {
-    checkClosed();
-    if (connection.binaryTransferSend(Oid.INT2)) {
-      byte[] val = new byte[2];
-      ByteConverter.int2(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.INT2);
-      return;
-    }
-    bindLiteral(parameterIndex, Integer.toString(x), Oid.INT2);
-  }
-
-  public void setInt(@Positive int parameterIndex, int x) throws SQLException {
-    checkClosed();
-    if (connection.binaryTransferSend(Oid.INT4)) {
-      byte[] val = new byte[4];
-      ByteConverter.int4(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.INT4);
-      return;
-    }
-    bindLiteral(parameterIndex, Integer.toString(x), Oid.INT4);
-  }
-
-  public void setLong(@Positive int parameterIndex, long x) throws SQLException {
-    checkClosed();
-    if (connection.binaryTransferSend(Oid.INT8)) {
-      byte[] val = new byte[8];
-      ByteConverter.int8(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.INT8);
-      return;
-    }
-    bindLiteral(parameterIndex, Long.toString(x), Oid.INT8);
-  }
-
-  public void setFloat(@Positive int parameterIndex, float x) throws SQLException {
-    checkClosed();
-    if (connection.binaryTransferSend(Oid.FLOAT4)) {
-      byte[] val = new byte[4];
-      ByteConverter.float4(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.FLOAT4);
-      return;
-    }
-    bindLiteral(parameterIndex, Float.toString(x), Oid.FLOAT8);
-  }
-
-  public void setDouble(@Positive int parameterIndex, double x) throws SQLException {
-    checkClosed();
-    if (connection.binaryTransferSend(Oid.FLOAT8)) {
-      byte[] val = new byte[8];
-      ByteConverter.float8(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.FLOAT8);
-      return;
-    }
-    bindLiteral(parameterIndex, Double.toString(x), Oid.FLOAT8);
-  }
-
-  public void setBigDecimal(@Positive int parameterIndex, @Nullable BigDecimal x)
-      throws SQLException {
-    setNumber(parameterIndex, x);
-  }
-
-  public void setString(@Positive int parameterIndex, @Nullable String x) throws SQLException {
-    checkClosed();
-    setString(parameterIndex, x, getStringType());
-  }
-
-  private int getStringType() {
-    return (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED);
-  }
-
-  protected void setString(@Positive int parameterIndex,
-      @Nullable String x, int oid) throws SQLException {
-    // if the passed string is null, then set this column to null
-    checkClosed();
-    if (x == null) {
-      preparedParameters.setNull(parameterIndex, oid);
-    } else {
-      bindString(parameterIndex, x, oid);
-    }
-  }
-
-  public void setBytes(@Positive int parameterIndex, byte @Nullable[] x) throws SQLException {
-    checkClosed();
-
-    if (null == x) {
-      setNull(parameterIndex, Types.VARBINARY);
-      return;
-    }
-
-    // Version 7.2 supports the bytea datatype for byte arrays
-    byte[] copy = new byte[x.length];
-    System.arraycopy(x, 0, copy, 0, x.length);
-    preparedParameters.setBytea(parameterIndex, copy, 0, x.length);
-  }
-
-  private void setByteStreamWriter(@Positive int parameterIndex,
-      ByteStreamWriter x) throws SQLException {
-    preparedParameters.setBytea(parameterIndex, x);
-  }
-
-  public void setDate(@Positive int parameterIndex,
-      java.sql.@Nullable Date x) throws SQLException {
-    setDate(parameterIndex, x, null);
-  }
-
-  public void setTime(@Positive int parameterIndex, @Nullable Time x) throws SQLException {
-    setTime(parameterIndex, x, null);
-  }
-
-  public void setTimestamp(@Positive int parameterIndex, @Nullable Timestamp x) throws SQLException {
-    setTimestamp(parameterIndex, x, null);
-  }
-
-  private void setCharacterStreamPost71(@Positive int parameterIndex,
-      @Nullable InputStream x, int length,
-      String encoding) throws SQLException {
-
-    if (x == null) {
-      setNull(parameterIndex, Types.VARCHAR);
-      return;
-    }
-    if (length < 0) {
-      throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
-          PSQLState.INVALID_PARAMETER_VALUE);
-    }
-
-    // Version 7.2 supports AsciiStream for all PG text types (char, varchar, text)
-    // As the spec/javadoc for this method indicate this is to be used for
-    // large String values (i.e. LONGVARCHAR) PG doesn't have a separate
-    // long varchar datatype, but with toast all text datatypes are capable of
-    // handling very large values. Thus the implementation ends up calling
-    // setString() since there is no current way to stream the value to the server
-    try {
-      InputStreamReader inStream = new InputStreamReader(x, encoding);
-      char[] chars = new char[length];
-      int charsRead = 0;
-      while (true) {
-        int n = inStream.read(chars, charsRead, length - charsRead);
-        if (n == -1) {
-          break;
-        }
-
-        charsRead += n;
-
-        if (charsRead == length) {
-          break;
-        }
-      }
-
-      setString(parameterIndex, new String(chars, 0, charsRead), Oid.VARCHAR);
-    } catch (UnsupportedEncodingException uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the {0} encoding.", encoding),
-          PSQLState.UNEXPECTED_ERROR, uee);
-    } catch (IOException ioe) {
-      throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
-          ioe);
-    }
-  }
-
-  public void setAsciiStream(@Positive int parameterIndex, @Nullable InputStream x,
-      @NonNegative int length) throws SQLException {
-    checkClosed();
-    setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
-  }
-
-  public void setUnicodeStream(@Positive int parameterIndex, @Nullable InputStream x,
-      @NonNegative int length) throws SQLException {
-    checkClosed();
-
-    setCharacterStreamPost71(parameterIndex, x, length, "UTF-8");
-  }
-
-  public void setBinaryStream(@Positive int parameterIndex, @Nullable InputStream x,
-      @NonNegative int length) throws SQLException {
-    checkClosed();
-
-    if (x == null) {
-      setNull(parameterIndex, Types.VARBINARY);
-      return;
-    }
-
-    if (length < 0) {
-      throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
-          PSQLState.INVALID_PARAMETER_VALUE);
-    }
-
-    // Version 7.2 supports BinaryStream for for the PG bytea type
-    // As the spec/javadoc for this method indicate this is to be used for
-    // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
-    // long binary datatype, but with toast the bytea datatype is capable of
-    // handling very large values.
-    preparedParameters.setBytea(parameterIndex, x, length);
-  }
-
-  public void clearParameters() throws SQLException {
-    preparedParameters.clear();
-  }
-
-  // Helper method for setting parameters to PGobject subclasses.
-  private void setPGobject(@Positive int parameterIndex, PGobject x) throws SQLException {
-    String typename = x.getType();
-    int oid = connection.getTypeInfo().getPGType(typename);
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(GT.tr("Unknown type {0}.", typename),
-          PSQLState.INVALID_PARAMETER_TYPE);
-    }
-
-    if ((x instanceof PGBinaryObject) && connection.binaryTransferSend(oid)) {
-      PGBinaryObject binObj = (PGBinaryObject) x;
-      byte[] data = new byte[binObj.lengthInBytes()];
-      binObj.toBytes(data, 0);
-      bindBytes(parameterIndex, data, oid);
-    } else {
-      setString(parameterIndex, x.getValue(), oid);
-    }
-  }
-
-  private void setMap(@Positive int parameterIndex, Map<?, ?> x) throws SQLException {
-    int oid = connection.getTypeInfo().getPGType("hstore");
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(GT.tr("No hstore extension installed."),
-          PSQLState.INVALID_PARAMETER_TYPE);
-    }
-    if (connection.binaryTransferSend(oid)) {
-      byte[] data = HStoreConverter.toBytes(x, connection.getEncoding());
-      bindBytes(parameterIndex, data, oid);
-    } else {
-      setString(parameterIndex, HStoreConverter.toString(x), oid);
-    }
-  }
-
-  private void setNumber(@Positive int parameterIndex, @Nullable Number x) throws SQLException {
-    checkClosed();
-    if (x == null) {
-      setNull(parameterIndex, Types.DECIMAL);
-    } else {
-      bindLiteral(parameterIndex, x.toString(), Oid.NUMERIC);
-    }
-  }
-
-  @Override
-  public void setObject(@Positive int parameterIndex, @Nullable Object in,
-      int targetSqlType, int scale)
-      throws SQLException {
-    checkClosed();
-
-    if (in == null) {
-      setNull(parameterIndex, targetSqlType);
-      return;
-    }
-
-    if (targetSqlType == Types.OTHER && in instanceof UUID
-        && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
-      setUuid(parameterIndex, (UUID) in);
-      return;
-    }
-
-    switch (targetSqlType) {
-      case Types.SQLXML:
-        if (in instanceof SQLXML) {
-          setSQLXML(parameterIndex, (SQLXML) in);
-        } else {
-          setSQLXML(parameterIndex, new PgSQLXML(connection, in.toString()));
-        }
-        break;
-      case Types.INTEGER:
-        setInt(parameterIndex, castToInt(in));
-        break;
-      case Types.TINYINT:
-      case Types.SMALLINT:
-        setShort(parameterIndex, castToShort(in));
-        break;
-      case Types.BIGINT:
-        setLong(parameterIndex, castToLong(in));
-        break;
-      case Types.REAL:
-        setFloat(parameterIndex, castToFloat(in));
-        break;
-      case Types.DOUBLE:
-      case Types.FLOAT:
-        setDouble(parameterIndex, castToDouble(in));
-        break;
-      case Types.DECIMAL:
-      case Types.NUMERIC:
-        setBigDecimal(parameterIndex, castToBigDecimal(in, scale));
-        break;
-      case Types.CHAR:
-        setString(parameterIndex, castToString(in), Oid.BPCHAR);
-        break;
-      case Types.VARCHAR:
-        setString(parameterIndex, castToString(in), getStringType());
-        break;
-      case Types.LONGVARCHAR:
-        if (in instanceof InputStream) {
-          preparedParameters.setText(parameterIndex, (InputStream)in);
-        } else {
-          setString(parameterIndex, castToString(in), getStringType());
-        }
-        break;
-      case Types.DATE:
-        if (in instanceof java.sql.Date) {
-          setDate(parameterIndex, (java.sql.Date) in);
-        } else {
-          java.sql.Date tmpd;
-          if (in instanceof java.util.Date) {
-            tmpd = new java.sql.Date(((java.util.Date) in).getTime());
-          } else if (in instanceof java.time.LocalDate) {
-            setDate(parameterIndex, (java.time.LocalDate) in);
-            break;
-          } else {
-            tmpd = connection.getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
-          }
-          setDate(parameterIndex, tmpd);
-        }
-        break;
-      case Types.TIME:
-        if (in instanceof java.sql.Time) {
-          setTime(parameterIndex, (java.sql.Time) in);
-        } else {
-          java.sql.Time tmpt;
-          if (in instanceof java.util.Date) {
-            tmpt = new java.sql.Time(((java.util.Date) in).getTime());
-          } else if (in instanceof java.time.LocalTime) {
-            setTime(parameterIndex, (java.time.LocalTime) in);
-            break;
-          } else {
-            tmpt = connection.getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
-          }
-          setTime(parameterIndex, tmpt);
-        }
-        break;
-      case Types.TIMESTAMP:
-        if (in instanceof PGTimestamp) {
-          setObject(parameterIndex, in);
-        } else if (in instanceof java.sql.Timestamp) {
-          setTimestamp(parameterIndex, (java.sql.Timestamp) in);
-        } else {
-          java.sql.Timestamp tmpts;
-          if (in instanceof java.util.Date) {
-            tmpts = new java.sql.Timestamp(((java.util.Date) in).getTime());
-          } else if (in instanceof java.time.LocalDateTime) {
-            setTimestamp(parameterIndex, (java.time.LocalDateTime) in);
-            break;
-          } else {
-            tmpts = connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
-          }
-          setTimestamp(parameterIndex, tmpts);
-        }
-        break;
-      case Types.TIMESTAMP_WITH_TIMEZONE:
-        if (in instanceof java.time.OffsetDateTime) {
-          setTimestamp(parameterIndex, (java.time.OffsetDateTime) in);
-        } else if (in instanceof PGTimestamp) {
-          setObject(parameterIndex, in);
-        } else {
-          throw new PSQLException(
-              GT.tr("Cannot cast an instance of {0} to type {1}",
-                  in.getClass().getName(), "Types.TIMESTAMP_WITH_TIMEZONE"),
-              PSQLState.INVALID_PARAMETER_TYPE);
-        }
-        break;
-      case Types.BOOLEAN:
-      case Types.BIT:
-        setBoolean(parameterIndex, BooleanTypeUtil.castToBoolean(in));
-        break;
-      case Types.BINARY:
-      case Types.VARBINARY:
-      case Types.LONGVARBINARY:
-        setObject(parameterIndex, in);
-        break;
-      case Types.BLOB:
-        if (in instanceof Blob) {
-          setBlob(parameterIndex, (Blob) in);
-        } else if (in instanceof InputStream) {
-          long oid = createBlob(parameterIndex, (InputStream) in, -1);
-          setLong(parameterIndex, oid);
-        } else {
-          throw new PSQLException(
-              GT.tr("Cannot cast an instance of {0} to type {1}",
-                  in.getClass().getName(), "Types.BLOB"),
-              PSQLState.INVALID_PARAMETER_TYPE);
-        }
-        break;
-      case Types.CLOB:
-        if (in instanceof Clob) {
-          setClob(parameterIndex, (Clob) in);
-        } else {
-          throw new PSQLException(
-              GT.tr("Cannot cast an instance of {0} to type {1}",
-                  in.getClass().getName(), "Types.CLOB"),
-              PSQLState.INVALID_PARAMETER_TYPE);
-        }
-        break;
-      case Types.ARRAY:
-        if (in instanceof Array) {
-          setArray(parameterIndex, (Array) in);
-        } else {
-          try {
-            setObjectArray(parameterIndex, in);
-          } catch (Exception e) {
-            throw new PSQLException(
-                GT.tr("Cannot cast an instance of {0} to type {1}", in.getClass().getName(), "Types.ARRAY"),
-                PSQLState.INVALID_PARAMETER_TYPE, e);
-          }
-        }
-        break;
-      case Types.DISTINCT:
-        bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
-        break;
-      case Types.OTHER:
-        if (in instanceof PGobject) {
-          setPGobject(parameterIndex, (PGobject) in);
-        } else if (in instanceof Map) {
-          setMap(parameterIndex, (Map<?, ?>) in);
-        } else {
-          bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
-        }
-        break;
-      default:
-        throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
-            PSQLState.INVALID_PARAMETER_TYPE);
-    }
-  }
-
-  private <A extends @NonNull Object> void setObjectArray(int parameterIndex, A in) throws SQLException {
-    final ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
-
-    final TypeInfo typeInfo = connection.getTypeInfo();
-
-    final int oid = arraySupport.getDefaultArrayTypeOid();
-
-    if (arraySupport.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      bindBytes(parameterIndex, arraySupport.toBinaryRepresentation(connection, in, oid), oid);
-    } else {
-      if (oid == Oid.UNSPECIFIED) {
-        throw new SQLFeatureNotSupportedException();
-      }
-      final int baseOid = typeInfo.getPGArrayElement(oid);
-      final String baseType = castNonNull(typeInfo.getPGType(baseOid));
-
-      final Array array = getPGConnection().createArrayOf(baseType, in);
-      this.setArray(parameterIndex, array);
-    }
   }
 
   private static String asString(final Clob in) throws SQLException {
@@ -918,6 +295,802 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
         PSQLState.INVALID_PARAMETER_TYPE, cause);
   }
 
+  @Override
+  public ResultSet executeQuery(String sql) throws SQLException {
+    throw new PSQLException(
+        GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
+        PSQLState.WRONG_OBJECT_TYPE);
+  }
+
+  /*
+   * A Prepared SQL query is executed and its ResultSet is returned
+   *
+   * @return a ResultSet that contains the data produced by the * query - never null
+   *
+   * @exception SQLException if a database access error occurs
+   */
+  @Override
+  public ResultSet executeQuery() throws SQLException {
+    if (!executeWithFlags(0)) {
+      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+    }
+
+    return getSingleResultSet();
+  }
+
+  @Override
+  public int executeUpdate(String sql) throws SQLException {
+    throw new PSQLException(
+        GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
+        PSQLState.WRONG_OBJECT_TYPE);
+  }
+
+  @Override
+  public int executeUpdate() throws SQLException {
+    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
+    return getUpdateCount();
+  }
+
+  @Override
+  public long executeLargeUpdate() throws SQLException {
+    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
+    return getLargeUpdateCount();
+  }
+
+  @Override
+  public boolean execute(String sql) throws SQLException {
+    throw new PSQLException(
+        GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
+        PSQLState.WRONG_OBJECT_TYPE);
+  }
+
+  @Override
+  public boolean execute() throws SQLException {
+    return executeWithFlags(0);
+  }
+
+  public boolean executeWithFlags(int flags) throws SQLException {
+    try {
+      checkClosed();
+
+      if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+        flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+      }
+
+      execute(preparedQuery, preparedParameters, flags);
+
+      synchronized (this) {
+        checkClosed();
+        return (result != null && result.getResultSet() != null);
+      }
+    } finally {
+      defaultTimeZone = null;
+    }
+  }
+
+  protected boolean isOneShotQuery(@Nullable CachedQuery cachedQuery) {
+    if (cachedQuery == null) {
+      cachedQuery = preparedQuery;
+    }
+    return super.isOneShotQuery(cachedQuery);
+  }
+
+  @Override
+  public void closeImpl() throws SQLException {
+    if (preparedQuery != null) {
+      ((PgConnection) connection).releaseQuery(preparedQuery);
+    }
+  }
+
+  public void setNull(int parameterIndex, int sqlType) throws SQLException {
+    checkClosed();
+
+    if (parameterIndex < 1 || parameterIndex > preparedParameters.getParameterCount()) {
+      throw new PSQLException(
+          GT.tr("The column index is out of range: {0}, number of columns: {1}.",
+              parameterIndex, preparedParameters.getParameterCount()),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    int oid;
+    switch (sqlType) {
+      case Types.SQLXML:
+        oid = Oid.XML;
+        break;
+      case Types.INTEGER:
+        oid = Oid.INT4;
+        break;
+      case Types.TINYINT:
+      case Types.SMALLINT:
+        oid = Oid.INT2;
+        break;
+      case Types.BIGINT:
+        oid = Oid.INT8;
+        break;
+      case Types.REAL:
+        oid = Oid.FLOAT4;
+        break;
+      case Types.DOUBLE:
+      case Types.FLOAT:
+        oid = Oid.FLOAT8;
+        break;
+      case Types.DECIMAL:
+      case Types.NUMERIC:
+        oid = Oid.NUMERIC;
+        break;
+      case Types.CHAR:
+        oid = Oid.BPCHAR;
+        break;
+      case Types.VARCHAR:
+      case Types.LONGVARCHAR:
+        oid = connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED;
+        break;
+      case Types.DATE:
+        oid = Oid.DATE;
+        break;
+      case Types.TIME:
+      case Types.TIME_WITH_TIMEZONE:
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+      case Types.TIMESTAMP:
+        oid = Oid.UNSPECIFIED;
+        break;
+      case Types.BOOLEAN:
+      case Types.BIT:
+        oid = Oid.BOOL;
+        break;
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+        oid = Oid.BYTEA;
+        break;
+      case Types.BLOB:
+      case Types.CLOB:
+        oid = Oid.OID;
+        break;
+      case Types.REF_CURSOR:
+        oid = Oid.REF_CURSOR;
+        break;
+      case Types.ARRAY:
+      case Types.DISTINCT:
+      case Types.STRUCT:
+      case Types.NULL:
+      case Types.OTHER:
+        oid = Oid.UNSPECIFIED;
+        break;
+      default:
+        // Bad Types value.
+        throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    preparedParameters.setNull(parameterIndex, oid);
+  }
+
+  public void setBoolean(@Positive int parameterIndex, boolean x) throws SQLException {
+    checkClosed();
+    // The key words TRUE and FALSE are the preferred (SQL-compliant) usage.
+    bindLiteral(parameterIndex, x ? "TRUE" : "FALSE", Oid.BOOL);
+  }
+
+  public void setByte(@Positive int parameterIndex, byte x) throws SQLException {
+    setShort(parameterIndex, x);
+  }
+
+  public void setShort(@Positive int parameterIndex, short x) throws SQLException {
+    checkClosed();
+    if (connection.binaryTransferSend(Oid.INT2)) {
+      byte[] val = new byte[2];
+      ByteConverter.int2(val, 0, x);
+      bindBytes(parameterIndex, val, Oid.INT2);
+      return;
+    }
+    bindLiteral(parameterIndex, Integer.toString(x), Oid.INT2);
+  }
+
+  public void setInt(@Positive int parameterIndex, int x) throws SQLException {
+    checkClosed();
+    if (connection.binaryTransferSend(Oid.INT4)) {
+      byte[] val = new byte[4];
+      ByteConverter.int4(val, 0, x);
+      bindBytes(parameterIndex, val, Oid.INT4);
+      return;
+    }
+    bindLiteral(parameterIndex, Integer.toString(x), Oid.INT4);
+  }
+
+  public void setLong(@Positive int parameterIndex, long x) throws SQLException {
+    checkClosed();
+    if (connection.binaryTransferSend(Oid.INT8)) {
+      byte[] val = new byte[8];
+      ByteConverter.int8(val, 0, x);
+      bindBytes(parameterIndex, val, Oid.INT8);
+      return;
+    }
+    bindLiteral(parameterIndex, Long.toString(x), Oid.INT8);
+  }
+
+  public void setFloat(@Positive int parameterIndex, float x) throws SQLException {
+    checkClosed();
+    if (connection.binaryTransferSend(Oid.FLOAT4)) {
+      byte[] val = new byte[4];
+      ByteConverter.float4(val, 0, x);
+      bindBytes(parameterIndex, val, Oid.FLOAT4);
+      return;
+    }
+    bindLiteral(parameterIndex, Float.toString(x), Oid.FLOAT8);
+  }
+
+  public void setDouble(@Positive int parameterIndex, double x) throws SQLException {
+    checkClosed();
+    if (connection.binaryTransferSend(Oid.FLOAT8)) {
+      byte[] val = new byte[8];
+      ByteConverter.float8(val, 0, x);
+      bindBytes(parameterIndex, val, Oid.FLOAT8);
+      return;
+    }
+    bindLiteral(parameterIndex, Double.toString(x), Oid.FLOAT8);
+  }
+
+  public void setBigDecimal(@Positive int parameterIndex, @Nullable BigDecimal x)
+      throws SQLException {
+    setNumber(parameterIndex, x);
+  }
+
+  public void setString(@Positive int parameterIndex, @Nullable String x) throws SQLException {
+    checkClosed();
+    setString(parameterIndex, x, getStringType());
+  }
+
+  private int getStringType() {
+    return (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED);
+  }
+
+  protected void setString(@Positive int parameterIndex,
+      @Nullable String x, int oid) throws SQLException {
+    // if the passed string is null, then set this column to null
+    checkClosed();
+    if (x == null) {
+      preparedParameters.setNull(parameterIndex, oid);
+    } else {
+      bindString(parameterIndex, x, oid);
+    }
+  }
+
+  public void setBytes(@Positive int parameterIndex, byte @Nullable [] x) throws SQLException {
+    checkClosed();
+
+    if (null == x) {
+      setNull(parameterIndex, Types.VARBINARY);
+      return;
+    }
+
+    // Version 7.2 supports the bytea datatype for byte arrays
+    byte[] copy = new byte[x.length];
+    System.arraycopy(x, 0, copy, 0, x.length);
+    preparedParameters.setBytea(parameterIndex, copy, 0, x.length);
+  }
+
+  private void setByteStreamWriter(@Positive int parameterIndex,
+      ByteStreamWriter x) throws SQLException {
+    preparedParameters.setBytea(parameterIndex, x);
+  }
+
+  public void setDate(@Positive int parameterIndex,
+      java.sql.@Nullable Date x) throws SQLException {
+    setDate(parameterIndex, x, null);
+  }
+
+  public void setTime(@Positive int parameterIndex, @Nullable Time x) throws SQLException {
+    setTime(parameterIndex, x, null);
+  }
+
+  public void setTimestamp(@Positive int parameterIndex, @Nullable Timestamp x)
+      throws SQLException {
+    setTimestamp(parameterIndex, x, null);
+  }
+
+  private void setCharacterStreamPost71(@Positive int parameterIndex,
+      @Nullable InputStream x, int length,
+      String encoding) throws SQLException {
+
+    if (x == null) {
+      setNull(parameterIndex, Types.VARCHAR);
+      return;
+    }
+    if (length < 0) {
+      throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    // Version 7.2 supports AsciiStream for all PG text types (char, varchar, text)
+    // As the spec/javadoc for this method indicate this is to be used for
+    // large String values (i.e. LONGVARCHAR) PG doesn't have a separate
+    // long varchar datatype, but with toast all text datatypes are capable of
+    // handling very large values. Thus the implementation ends up calling
+    // setString() since there is no current way to stream the value to the server
+    try {
+      InputStreamReader inStream = new InputStreamReader(x, encoding);
+      char[] chars = new char[length];
+      int charsRead = 0;
+      while (true) {
+        int n = inStream.read(chars, charsRead, length - charsRead);
+        if (n == -1) {
+          break;
+        }
+
+        charsRead += n;
+
+        if (charsRead == length) {
+          break;
+        }
+      }
+
+      setString(parameterIndex, new String(chars, 0, charsRead), Oid.VARCHAR);
+    } catch (UnsupportedEncodingException uee) {
+      throw new PSQLException(GT.tr("The JVM claims not to support the {0} encoding.", encoding),
+          PSQLState.UNEXPECTED_ERROR, uee);
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
+          ioe);
+    }
+  }
+
+  public void setAsciiStream(@Positive int parameterIndex, @Nullable InputStream x,
+      @NonNegative int length) throws SQLException {
+    checkClosed();
+    setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
+  }
+
+  public void setUnicodeStream(@Positive int parameterIndex, @Nullable InputStream x,
+      @NonNegative int length) throws SQLException {
+    checkClosed();
+
+    setCharacterStreamPost71(parameterIndex, x, length, "UTF-8");
+  }
+
+  public void setBinaryStream(@Positive int parameterIndex, @Nullable InputStream x,
+      @NonNegative int length) throws SQLException {
+    checkClosed();
+
+    if (x == null) {
+      setNull(parameterIndex, Types.VARBINARY);
+      return;
+    }
+
+    if (length < 0) {
+      throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    // Version 7.2 supports BinaryStream for for the PG bytea type
+    // As the spec/javadoc for this method indicate this is to be used for
+    // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
+    // long binary datatype, but with toast the bytea datatype is capable of
+    // handling very large values.
+    preparedParameters.setBytea(parameterIndex, x, length);
+  }
+
+  public void clearParameters() throws SQLException {
+    preparedParameters.clear();
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x, int targetSqlType) throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x, targetSqlType);
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x) throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setCharacterStream(String parameterName, Reader reader, int length)
+      throws SQLException {
+    this.setCharacterStream(preparedParameters.getIndex(parameterName), reader, length);
+  }
+
+  @Override
+  public void setRef(String parameterName, Ref x) throws SQLException {
+    this.setRef(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setBlob(String parameterName, Blob x) throws SQLException {
+    this.setBlob(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setClob(String parameterName, Clob x) throws SQLException {
+    this.setClob(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setArray(String parameterName, Array x) throws SQLException {
+    this.setArray(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setDate(String parameterName, Date x, Calendar cal) throws SQLException {
+    this.setDate(preparedParameters.getIndex(parameterName), x, cal);
+  }
+
+  @Override
+  public void setTime(String parameterName, Time x, Calendar cal) throws SQLException {
+    this.setTime(preparedParameters.getIndex(parameterName), x, cal);
+  }
+
+  @Override
+  public void setTimestamp(String parameterName, Timestamp x, Calendar cal) throws SQLException {
+    this.setTimestamp(preparedParameters.getIndex(parameterName), x, cal);
+  }
+
+  @Override
+  public void setNull(String parameterName, int sqlType, String typeName) throws SQLException {
+    this.setNull(preparedParameters.getIndex(parameterName), sqlType, typeName);
+  }
+
+  @Override
+  public void setRowId(String parameterName, RowId x) throws SQLException {
+    this.setRowId(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setNString(String parameterName, String value) throws SQLException {
+    this.setNString(preparedParameters.getIndex(parameterName), value);
+  }
+
+  @Override
+  public void setNCharacterStream(String parameterName, Reader value, long length)
+      throws SQLException {
+    this.setNCharacterStream(preparedParameters.getIndex(parameterName), value, length);
+  }
+
+  @Override
+  public void setNClob(String parameterName, NClob value) throws SQLException {
+    this.setNClob(preparedParameters.getIndex(parameterName), value);
+  }
+
+  @Override
+  public void setClob(String parameterName, Reader reader, long length) throws SQLException {
+    this.setClob(preparedParameters.getIndex(parameterName), reader, length);
+  }
+
+  @Override
+  public void setBlob(String parameterName, InputStream inputStream, long length)
+      throws SQLException {
+    this.setBlob(preparedParameters.getIndex(parameterName), inputStream, length);
+  }
+
+  @Override
+  public void setNClob(String parameterName, Reader reader, long length) throws SQLException {
+    this.setNClob(preparedParameters.getIndex(parameterName), reader, length);
+  }
+
+  @Override
+  public void setSQLXML(String parameterName, SQLXML xmlObject) throws SQLException {
+    this.setSQLXML(preparedParameters.getIndex(parameterName), xmlObject);
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x, int targetSqlType, int scaleOrLength)
+      throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x, targetSqlType, scaleOrLength);
+  }
+
+  @Override
+  public void setAsciiStream(String parameterName, InputStream x, long length) throws SQLException {
+    this.setAsciiStream(preparedParameters.getIndex(parameterName), x, length);
+  }
+
+  @Override
+  public void setBinaryStream(String parameterName, InputStream x, long length)
+      throws SQLException {
+    this.setBinaryStream(preparedParameters.getIndex(parameterName), x, length);
+  }
+
+  @Override
+  public void setCharacterStream(String parameterName, Reader reader, long length)
+      throws SQLException {
+    this.setCharacterStream(preparedParameters.getIndex(parameterName), reader, length);
+  }
+
+  @Override
+  public void setAsciiStream(String parameterName, InputStream x) throws SQLException {
+    this.setAsciiStream(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setBinaryStream(String parameterName, InputStream x) throws SQLException {
+    this.setBinaryStream(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setCharacterStream(String parameterName, Reader reader) throws SQLException {
+    this.setCharacterStream(preparedParameters.getIndex(parameterName), reader);
+  }
+
+  @Override
+  public void setNCharacterStream(String parameterName, Reader value) throws SQLException {
+    this.setNCharacterStream(preparedParameters.getIndex(parameterName), value);
+  }
+
+  @Override
+  public void setClob(String parameterName, Reader reader) throws SQLException {
+    this.setClob(preparedParameters.getIndex(parameterName), reader);
+  }
+
+  @Override
+  public void setBlob(String parameterName, InputStream inputStream) throws SQLException {
+    this.setBlob(preparedParameters.getIndex(parameterName), inputStream);
+  }
+
+  @Override
+  public void setNClob(String parameterName, Reader reader) throws SQLException {
+    this.setNClob(preparedParameters.getIndex(parameterName), reader);
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType, int scaleOrLength)
+      throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x, targetSqlType, scaleOrLength);
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType) throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x, targetSqlType);
+  }
+
+  // Helper method for setting parameters to PGobject subclasses.
+  private void setPGobject(@Positive int parameterIndex, PGobject x) throws SQLException {
+    String typename = x.getType();
+    int oid = connection.getTypeInfo().getPGType(typename);
+    if (oid == Oid.UNSPECIFIED) {
+      throw new PSQLException(GT.tr("Unknown type {0}.", typename),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+
+    if ((x instanceof PGBinaryObject) && connection.binaryTransferSend(oid)) {
+      PGBinaryObject binObj = (PGBinaryObject) x;
+      byte[] data = new byte[binObj.lengthInBytes()];
+      binObj.toBytes(data, 0);
+      bindBytes(parameterIndex, data, oid);
+    } else {
+      setString(parameterIndex, x.getValue(), oid);
+    }
+  }
+
+  private void setMap(@Positive int parameterIndex, Map<?, ?> x) throws SQLException {
+    int oid = connection.getTypeInfo().getPGType("hstore");
+    if (oid == Oid.UNSPECIFIED) {
+      throw new PSQLException(GT.tr("No hstore extension installed."),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    if (connection.binaryTransferSend(oid)) {
+      byte[] data = HStoreConverter.toBytes(x, connection.getEncoding());
+      bindBytes(parameterIndex, data, oid);
+    } else {
+      setString(parameterIndex, HStoreConverter.toString(x), oid);
+    }
+  }
+
+  private void setNumber(@Positive int parameterIndex, @Nullable Number x) throws SQLException {
+    checkClosed();
+    if (x == null) {
+      setNull(parameterIndex, Types.DECIMAL);
+    } else {
+      bindLiteral(parameterIndex, x.toString(), Oid.NUMERIC);
+    }
+  }
+
+  @Override
+  public void setObject(@Positive int parameterIndex, @Nullable Object in,
+      int targetSqlType, int scale)
+      throws SQLException {
+    checkClosed();
+
+    if (in == null) {
+      setNull(parameterIndex, targetSqlType);
+      return;
+    }
+
+    if (targetSqlType == Types.OTHER && in instanceof UUID
+        && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
+      setUuid(parameterIndex, (UUID) in);
+      return;
+    }
+
+    switch (targetSqlType) {
+      case Types.SQLXML:
+        if (in instanceof SQLXML) {
+          setSQLXML(parameterIndex, (SQLXML) in);
+        } else {
+          setSQLXML(parameterIndex, new PgSQLXML(connection, in.toString()));
+        }
+        break;
+      case Types.INTEGER:
+        setInt(parameterIndex, castToInt(in));
+        break;
+      case Types.TINYINT:
+      case Types.SMALLINT:
+        setShort(parameterIndex, castToShort(in));
+        break;
+      case Types.BIGINT:
+        setLong(parameterIndex, castToLong(in));
+        break;
+      case Types.REAL:
+        setFloat(parameterIndex, castToFloat(in));
+        break;
+      case Types.DOUBLE:
+      case Types.FLOAT:
+        setDouble(parameterIndex, castToDouble(in));
+        break;
+      case Types.DECIMAL:
+      case Types.NUMERIC:
+        setBigDecimal(parameterIndex, castToBigDecimal(in, scale));
+        break;
+      case Types.CHAR:
+        setString(parameterIndex, castToString(in), Oid.BPCHAR);
+        break;
+      case Types.VARCHAR:
+        setString(parameterIndex, castToString(in), getStringType());
+        break;
+      case Types.LONGVARCHAR:
+        if (in instanceof InputStream) {
+          preparedParameters.setText(parameterIndex, (InputStream) in);
+        } else {
+          setString(parameterIndex, castToString(in), getStringType());
+        }
+        break;
+      case Types.DATE:
+        if (in instanceof java.sql.Date) {
+          setDate(parameterIndex, (java.sql.Date) in);
+        } else {
+          java.sql.Date tmpd;
+          if (in instanceof java.util.Date) {
+            tmpd = new java.sql.Date(((java.util.Date) in).getTime());
+          } else if (in instanceof java.time.LocalDate) {
+            setDate(parameterIndex, (java.time.LocalDate) in);
+            break;
+          } else {
+            tmpd = connection.getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
+          }
+          setDate(parameterIndex, tmpd);
+        }
+        break;
+      case Types.TIME:
+        if (in instanceof java.sql.Time) {
+          setTime(parameterIndex, (java.sql.Time) in);
+        } else {
+          java.sql.Time tmpt;
+          if (in instanceof java.util.Date) {
+            tmpt = new java.sql.Time(((java.util.Date) in).getTime());
+          } else if (in instanceof java.time.LocalTime) {
+            setTime(parameterIndex, (java.time.LocalTime) in);
+            break;
+          } else {
+            tmpt = connection.getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
+          }
+          setTime(parameterIndex, tmpt);
+        }
+        break;
+      case Types.TIMESTAMP:
+        if (in instanceof PGTimestamp) {
+          setObject(parameterIndex, in);
+        } else if (in instanceof java.sql.Timestamp) {
+          setTimestamp(parameterIndex, (java.sql.Timestamp) in);
+        } else {
+          java.sql.Timestamp tmpts;
+          if (in instanceof java.util.Date) {
+            tmpts = new java.sql.Timestamp(((java.util.Date) in).getTime());
+          } else if (in instanceof java.time.LocalDateTime) {
+            setTimestamp(parameterIndex, (java.time.LocalDateTime) in);
+            break;
+          } else {
+            tmpts = connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
+          }
+          setTimestamp(parameterIndex, tmpts);
+        }
+        break;
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+        if (in instanceof java.time.OffsetDateTime) {
+          setTimestamp(parameterIndex, (java.time.OffsetDateTime) in);
+        } else if (in instanceof PGTimestamp) {
+          setObject(parameterIndex, in);
+        } else {
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  in.getClass().getName(), "Types.TIMESTAMP_WITH_TIMEZONE"),
+              PSQLState.INVALID_PARAMETER_TYPE);
+        }
+        break;
+      case Types.BOOLEAN:
+      case Types.BIT:
+        setBoolean(parameterIndex, BooleanTypeUtil.castToBoolean(in));
+        break;
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+        setObject(parameterIndex, in);
+        break;
+      case Types.BLOB:
+        if (in instanceof Blob) {
+          setBlob(parameterIndex, (Blob) in);
+        } else if (in instanceof InputStream) {
+          long oid = createBlob(parameterIndex, (InputStream) in, -1);
+          setLong(parameterIndex, oid);
+        } else {
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  in.getClass().getName(), "Types.BLOB"),
+              PSQLState.INVALID_PARAMETER_TYPE);
+        }
+        break;
+      case Types.CLOB:
+        if (in instanceof Clob) {
+          setClob(parameterIndex, (Clob) in);
+        } else {
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  in.getClass().getName(), "Types.CLOB"),
+              PSQLState.INVALID_PARAMETER_TYPE);
+        }
+        break;
+      case Types.ARRAY:
+        if (in instanceof Array) {
+          setArray(parameterIndex, (Array) in);
+        } else {
+          try {
+            setObjectArray(parameterIndex, in);
+          } catch (Exception e) {
+            throw new PSQLException(
+                GT.tr("Cannot cast an instance of {0} to type {1}", in.getClass().getName(), "Types"
+                    + ".ARRAY"),
+                PSQLState.INVALID_PARAMETER_TYPE, e);
+          }
+        }
+        break;
+      case Types.DISTINCT:
+        bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
+        break;
+      case Types.OTHER:
+        if (in instanceof PGobject) {
+          setPGobject(parameterIndex, (PGobject) in);
+        } else if (in instanceof Map) {
+          setMap(parameterIndex, (Map<?, ?>) in);
+        } else {
+          bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
+        }
+        break;
+      default:
+        throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
+            PSQLState.INVALID_PARAMETER_TYPE);
+    }
+  }
+
+  private <A extends @NonNull Object> void setObjectArray(int parameterIndex, A in)
+      throws SQLException {
+    final ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
+
+    final TypeInfo typeInfo = connection.getTypeInfo();
+
+    final int oid = arraySupport.getDefaultArrayTypeOid();
+
+    if (arraySupport.supportBinaryRepresentation(oid)
+        && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      bindBytes(parameterIndex, arraySupport.toBinaryRepresentation(connection, in, oid), oid);
+    } else {
+      if (oid == Oid.UNSPECIFIED) {
+        throw new SQLFeatureNotSupportedException();
+      }
+      final int baseOid = typeInfo.getPGArrayElement(oid);
+      final String baseType = castNonNull(typeInfo.getPGType(baseOid));
+
+      final Array array = getPGConnection().createArrayOf(baseType, in);
+      this.setArray(parameterIndex, array);
+    }
+  }
+
   public void setObject(@Positive int parameterIndex, @Nullable Object x,
       int targetSqlType) throws SQLException {
     setObject(parameterIndex, x, targetSqlType, -1);
@@ -989,13 +1162,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
         setObjectArray(parameterIndex, x);
       } catch (Exception e) {
         throw new PSQLException(
-            GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types.ARRAY"),
+            GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types"
+                + ".ARRAY"),
             PSQLState.INVALID_PARAMETER_TYPE, e);
       }
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
-          "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.",
+          "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an "
+              + "explicit Types value to specify the type to use.",
           x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
     }
   }
@@ -1019,8 +1194,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
    * the source of the string is known safe (i.e. {@code Integer.toString()})
    *
    * @param paramIndex parameter index
-   * @param s value (the value should already be escaped)
-   * @param oid type oid
+   * @param s          value (the value should already be escaped)
+   * @param oid        type oid
    * @throws SQLException if something goes wrong
    */
   protected void bindLiteral(@Positive int paramIndex,
@@ -1038,8 +1213,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
    * bindString with no escaping; the per-protocol ParameterList does escaping as needed.
    *
    * @param paramIndex parameter index
-   * @param s value
-   * @param oid type oid
+   * @param s          value
+   * @param oid        type oid
    * @throws SQLException if something goes wrong
    */
   private void bindString(@Positive int paramIndex, String s, int oid) throws SQLException {
@@ -1708,13 +1883,84 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
   }
 
   @Override
+  public void setBytes(String parameterName, byte[] x) throws SQLException {
+    this.setBytes(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setNull(String parameterName, int sqlType) throws SQLException {
+    this.setNull(preparedParameters.getIndex(parameterName), sqlType);
+  }
+
+  @Override
+  public void setBoolean(String parameterName, boolean x) throws SQLException {
+    this.setBoolean(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setByte(String parameterName, byte x) throws SQLException {
+    this.setByte(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setShort(String parameterName, short x) throws SQLException {
+    this.setShort(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
   public void setInt(String parameterName, int i) throws SQLException {
     this.setInt(preparedParameters.getIndex(parameterName), i);
   }
 
   @Override
+  public void setLong(String parameterName, long x) throws SQLException {
+    this.setLong(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setFloat(String parameterName, float x) throws SQLException {
+    this.setFloat(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setDouble(String parameterName, double x) throws SQLException {
+    this.setDouble(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setBigDecimal(String parameterName, BigDecimal x) throws SQLException {
+    this.setBigDecimal(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
   public void setDate(String parameterName, java.sql.@Nullable Date x) throws SQLException {
     this.setDate(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setTime(String parameterName, Time x) throws SQLException {
+    this.setTime(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setTimestamp(String parameterName, Timestamp x) throws SQLException {
+    this.setTimestamp(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setAsciiStream(String parameterName, InputStream x, int length) throws SQLException {
+    this.setAsciiStream(preparedParameters.getIndex(parameterName), x, length);
+  }
+
+  @Override
+  public void setUnicodeStream(String parameterName, InputStream x, int length)
+      throws SQLException {
+    this.setUnicodeStream(preparedParameters.getIndex(parameterName), x, length);
+  }
+
+  @Override
+  public void setBinaryStream(String parameterName, InputStream x, int length) throws SQLException {
+    this.setBinaryStream(preparedParameters.getIndex(parameterName), x, length);
   }
 
   @Override

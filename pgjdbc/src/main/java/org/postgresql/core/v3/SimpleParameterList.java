@@ -6,7 +6,11 @@
 
 package org.postgresql.core.v3;
 
-import org.postgresql.core.*;
+import org.postgresql.core.Oid;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ParameterContext;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Utils;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.UUIDArrayAssistant;
@@ -46,12 +50,12 @@ class SimpleParameterList implements V3ParameterList {
 
   private static final ParameterContext NO_PARAMETER_CONTEXT = new ParameterContext();
 
-  public SimpleParameterList(int paramCount,
+  SimpleParameterList(int paramCount,
       @Nullable TypeTransferModeRegistry transferModeRegistry) {
     this(paramCount, transferModeRegistry, NO_PARAMETER_CONTEXT);
   }
 
-  public SimpleParameterList(int paramCount,
+  SimpleParameterList(int paramCount,
       @Nullable TypeTransferModeRegistry transferModeRegistry,
       ParameterContext parameterCtx
   ) {
@@ -78,7 +82,6 @@ class SimpleParameterList implements V3ParameterList {
       this.paramNameIndex = null;
     }
   }
-
 
   @Override
   public void registerOutParameter(int index, int sqlType) throws SQLException {
@@ -225,46 +228,46 @@ class SimpleParameterList implements V3ParameterList {
       // handle some of the numeric types
 
       switch (paramType) {
-      case Oid.INT2:
-        short s = ByteConverter.int2((byte[]) paramValue, 0);
-        return Short.toString(s);
+        case Oid.INT2:
+          short s = ByteConverter.int2((byte[]) paramValue, 0);
+          return Short.toString(s);
 
-      case Oid.INT4:
-        int i = ByteConverter.int4((byte[]) paramValue, 0);
-        return Integer.toString(i);
+        case Oid.INT4:
+          int i = ByteConverter.int4((byte[]) paramValue, 0);
+          return Integer.toString(i);
 
-      case Oid.INT8:
-        long l = ByteConverter.int8((byte[]) paramValue, 0);
-        return Long.toString(l);
+        case Oid.INT8:
+          long l = ByteConverter.int8((byte[]) paramValue, 0);
+          return Long.toString(l);
 
-      case Oid.FLOAT4:
-        float f = ByteConverter.float4((byte[]) paramValue, 0);
-        if (Float.isNaN(f)) {
-          return "'NaN'::real";
-        }
-        return Float.toString(f);
+        case Oid.FLOAT4:
+          float f = ByteConverter.float4((byte[]) paramValue, 0);
+          if (Float.isNaN(f)) {
+            return "'NaN'::real";
+          }
+          return Float.toString(f);
 
-      case Oid.FLOAT8:
-        double d = ByteConverter.float8((byte[]) paramValue, 0);
-        if (Double.isNaN(d)) {
-          return "'NaN'::double precision";
-        }
-        return Double.toString(d);
+        case Oid.FLOAT8:
+          double d = ByteConverter.float8((byte[]) paramValue, 0);
+          if (Double.isNaN(d)) {
+            return "'NaN'::double precision";
+          }
+          return Double.toString(d);
 
-      case Oid.UUID:
-        String uuid =
-            new UUIDArrayAssistant().buildElement((byte[]) paramValue, 0, 16).toString();
-        return "'" + uuid + "'::uuid";
+        case Oid.UUID:
+          String uuid =
+              new UUIDArrayAssistant().buildElement((byte[]) paramValue, 0, 16).toString();
+          return "'" + uuid + "'::uuid";
 
-      case Oid.POINT:
-        PGpoint pgPoint = new PGpoint();
-        pgPoint.setByteValue((byte[]) paramValue, 0);
-        return "'" + pgPoint.toString() + "'::point";
+        case Oid.POINT:
+          PGpoint pgPoint = new PGpoint();
+          pgPoint.setByteValue((byte[]) paramValue, 0);
+          return "'" + pgPoint.toString() + "'::point";
 
-      case Oid.BOX:
-        PGbox pgBox = new PGbox();
-        pgBox.setByteValue((byte[]) paramValue, 0);
-        return "'" + pgBox.toString() + "'::box";
+        case Oid.BOX:
+          PGbox pgBox = new PGbox();
+          pgBox.setByteValue((byte[]) paramValue, 0);
+          return "'" + pgBox.toString() + "'::box";
       }
       return "?";
     } else {
@@ -498,9 +501,8 @@ class SimpleParameterList implements V3ParameterList {
 
     if (index == null) {
       throw new PSQLException(
-          GT.tr("The parameterName was not found : {0}. The following names are known : \n\t {1}"
-              , parameterName, this.paramNameIndex.keySet()),
-          PSQLState.INVALID_PARAMETER_VALUE);
+          GT.tr("The parameterName was not found : {0}. The following names are known : \n\t {1}",
+              parameterName, this.paramNameIndex.keySet()), PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     return index;

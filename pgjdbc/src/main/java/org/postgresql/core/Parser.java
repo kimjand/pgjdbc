@@ -209,25 +209,25 @@ public class Parser {
           } // Fall-through to default when isBatchedReWriteConfigured == true
         }
 
-      default:
-        if (keywordStart >= 0) {
-          // When we are inside a keyword, we need to detect keyword end boundary
-          // Note that isKeyWordChar is initialized to false before the switch, so
-          // all other characters would result in isKeyWordChar=false
-          isKeyWordChar = isIdentifierContChar(aChar);
-          break;
-        }
-        // Not in keyword, so just detect next keyword start
-        isKeyWordChar = isIdentifierStartChar(aChar);
-        if (isKeyWordChar) {
-          keywordStart = i;
-          if (valuesBraceOpenPosition != -1 && inParen == 0) {
-            // When the statement already has multi-values, stop looking for more of them
-            // Since values(?,?),(?,?),... should not contain keywords in the middle
-            valuesBraceCloseFound = true;
+        default:
+          if (keywordStart >= 0) {
+            // When we are inside a keyword, we need to detect keyword end boundary
+            // Note that isKeyWordChar is initialized to false before the switch, so
+            // all other characters would result in isKeyWordChar=false
+            isKeyWordChar = isIdentifierContChar(aChar);
+            break;
           }
-        }
-        break;
+          // Not in keyword, so just detect next keyword start
+          isKeyWordChar = isIdentifierStartChar(aChar);
+          if (isKeyWordChar) {
+            keywordStart = i;
+            if (valuesBraceOpenPosition != -1 && inParen == 0) {
+              // When the statement already has multi-values, stop looking for more of them
+              // Since values(?,?),(?,?),... should not contain keywords in the middle
+              valuesBraceCloseFound = true;
+            }
+          }
+          break;
       }
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
         int wordLength = (isKeyWordChar ? i + 1 : keywordEnd) - keywordStart;

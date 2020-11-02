@@ -7,13 +7,13 @@ package org.postgresql.core.v3;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterContext;
 import org.postgresql.core.Parser;
+
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.SQLException;
 import java.util.Arrays;
