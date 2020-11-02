@@ -43,8 +43,7 @@ public class V3ParameterListTests {
   }
 
   /**
-   * Test to check the merging of two collections of parameters. All elements
-   * are kept.
+   * Test to check the merging of two collections of parameters. All elements are kept.
    *
    * @throws SQLException raised exception if setting parameter fails.
    */
@@ -75,8 +74,7 @@ public class V3ParameterListTests {
     List<NativeQuery> qry;
     NativeQuery nativeQuery;
 
-    query = "SELECT :a+:a+:a+:b+:c+:b" +
-        "+:c AS a";
+    query = "SELECT :a+:a+:a+:b+:c+:b+:c AS a";
     qry = Parser.parseJdbcSql(query, true, true, true, false);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
@@ -90,8 +88,7 @@ public class V3ParameterListTests {
     );
     assertEquals(query, nativeQuery.toString(parameters));
 
-    query = "select :ASTR||:bStr||:c AS \n" +
-        "teststr";
+    query = "select :ASTR||:bStr||:c AS \nteststr";
     qry = Parser.parseJdbcSql(query, true, true, true, false);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
@@ -108,13 +105,12 @@ public class V3ParameterListTests {
     parameters.setStringParameter(parameters.getIndex("c"), "p3", Oid.VARCHAR);
     parameters.setStringParameter(parameters.getIndex("bStr"), "p2", Oid.VARCHAR);
     parameters.setStringParameter(parameters.getIndex("ASTR"), "p1", Oid.VARCHAR);
-    assertEquals
-        (
-            query
-                .replace(":ASTR", "'p1'")
-                .replace(":bStr", "'p2'")
-                .replace(":c", "'p3'"),
-            nativeQuery.toString(parameters)
-        );
+    assertEquals(
+        query
+            .replace(":ASTR", "'p1'")
+            .replace(":bStr", "'p2'")
+            .replace(":c", "'p3'"),
+        nativeQuery.toString(parameters)
+    );
   }
 }

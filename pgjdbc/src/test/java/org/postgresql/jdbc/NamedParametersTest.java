@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.jdbc;
 
 import static org.junit.Assert.assertEquals;
@@ -29,8 +34,8 @@ public class NamedParametersTest extends BaseTest4 {
       fail("Should throw a SQLException");
     } catch (SQLException ex) {
       // ignore
-      assertEquals("Positional and named parameters cannot be combined! Saw " +
-          "positional parameter first.", ex.getMessage());
+      assertEquals("Positional and named parameters cannot be combined! Saw "
+          + "positional parameter first.", ex.getMessage());
     }
 
     try {
@@ -38,26 +43,27 @@ public class NamedParametersTest extends BaseTest4 {
       fail("Should throw a SQLException");
     } catch (SQLException ex) {
       // ignore
-      assertEquals("Positional and named parameters cannot be combined! Saw " +
-          "named parameter first.", ex.getMessage());
+      assertEquals("Positional and named parameters cannot be combined! Saw "
+          + "named parameter first.", ex.getMessage());
     }
   }
-
 
   @Test
   public void setString() throws Exception {
     {
-      PreparedStatement preparedStatement = con.prepareStatement("select :ASTR||:bStr||:c AS " +
-          "teststr");
+      PreparedStatement preparedStatement = con.prepareStatement("select :ASTR||:bStr||:c AS "
+          + "teststr");
       PGPreparedStatement ps = preparedStatement.unwrap(PGPreparedStatement.class);
       final String failureParameterName = "BsTr";
       try {
         ps.setString(failureParameterName, "1");
         fail("Should throw a SQLException");
       } catch (SQLException ex) {
-        assertEquals(String.format("The parameterName was not found : %s. The following names " +
-                "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{"ASTR",
-                "bStr", "c"})),
+        assertEquals(String.format("The parameterName was not found : %s. The following names "
+            + "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{
+              "ASTR",
+              "bStr",
+              "c"})),
             ex.getMessage());
       }
       ps.setString("bStr", "1");
@@ -108,8 +114,8 @@ public class NamedParametersTest extends BaseTest4 {
 
       final java.sql.Date sqlDate = java.sql.Date.valueOf(LocalDate.now());
       {
-        final String insertSQL = "INSERT INTO test_dates( d1, pk, d2, d3 ) values ( :date, :pk, " +
-            ":date, :date )";
+        final String insertSQL = "INSERT INTO test_dates( d1, pk, d2, d3 ) values ( :date, :pk, "
+            + ":date, :date )";
         PgPreparedStatement insertStmt =
             con.prepareStatement(insertSQL).unwrap(PgPreparedStatement.class);
 
@@ -120,9 +126,9 @@ public class NamedParametersTest extends BaseTest4 {
       }
 
       {
-        final String sql = "SELECT td.*, :date::DATE AS d4 FROM test_dates td WHERE td.d1 = :date" +
-            " AND :date " +
-            "BETWEEN td.d2 AND td.d3";
+        final String sql = "SELECT td.*, :date::DATE AS d4 FROM test_dates td WHERE td.d1 = :date"
+            + " AND :date "
+            + "BETWEEN td.d2 AND td.d3";
         PgPreparedStatement pstmt = con.prepareStatement(sql).unwrap(PgPreparedStatement.class);
 
         pstmt.setDate("date", sqlDate);
@@ -143,8 +149,8 @@ public class NamedParametersTest extends BaseTest4 {
       final java.sql.Date sqlDate2 = java.sql.Date.valueOf(LocalDate.now().plus(1,
           ChronoUnit.DAYS));
       {
-        final String updateSQL = "update test_dates SET d1 = :date2, d3 = :date2 WHERE pk = :pk " +
-            "AND d1 =:date RETURNING d1, :date AS d2, d3, d2 AS d4";
+        final String updateSQL = "update test_dates SET d1 = :date2, d3 = :date2 WHERE pk = :pk "
+            + "AND d1 =:date RETURNING d1, :date AS d2, d3, d2 AS d4";
         PgPreparedStatement updateStmt =
             con.prepareStatement(updateSQL).unwrap(PgPreparedStatement.class);
 
@@ -179,7 +185,8 @@ public class NamedParametersTest extends BaseTest4 {
     try {
 
       pstmt =
-          con.prepareStatement("INSERT INTO testbatch VALUES (:int1,:int2,:int1)").unwrap(PgPreparedStatement.class);
+          con.prepareStatement("INSERT INTO testbatch VALUES (:int1,:int2,:int1)")
+              .unwrap(PgPreparedStatement.class);
       pstmt.setInt("int1", 1);
       pstmt.setInt("int2", 2);
       pstmt.addBatch();
