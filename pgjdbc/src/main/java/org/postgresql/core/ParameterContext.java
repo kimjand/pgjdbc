@@ -116,14 +116,14 @@ public class ParameterContext {
   }
 
   /**
-   * Returns the number of placeholder appearances in the SQL text
+   * @return Returns the number of placeholder appearances in the SQL text
    */
   public int getPlaceholderCount() {
     return placeholderPositions == null ? 0 : placeholderPositions.size();
   }
 
   /**
-   * Returns the number of parameter to be sent to the backend.
+   * @return Returns the number of parameter to be sent to the backend.
    */
   public int nativeParameterCount() {
     if (placeholderNames != null) {
