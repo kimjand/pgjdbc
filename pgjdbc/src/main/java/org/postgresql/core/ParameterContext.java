@@ -18,14 +18,10 @@ public class ParameterContext {
     POSITIONAL, NAMED
   }
 
-  @Nullable
-  private BindStyle bindStyle = null;
-  @Nullable
-  private List<Integer> placeholderPositions = null;
-  @Nullable
-  private List<String> placeholderNames = null;
-  @Nullable
-  private List<Integer> placeholderAtPosition = null;
+  private @Nullable BindStyle bindStyle = null;
+  private @Nullable List<Integer> placeholderPositions = null;
+  private @Nullable List<String> placeholderNames = null;
+  private @Nullable List<Integer> placeholderAtPosition = null;
 
   public static ParameterContext buildNamed(List<Integer> placeholderPositions,
       List<String> placeholderNames) throws SQLException {
