@@ -11,11 +11,11 @@ import java.sql.SQLException;
 import java.util.List;
 
 public interface PGPreparedStatement extends PGStatement {
-  void setString(String parameterName, String x) throws SQLException;
+  void setDate(String parameterName, java.sql.@Nullable Date x) throws SQLException;
 
   void setInt(String parameterName, int i) throws SQLException;
 
-  void setDate(String parameterName, java.sql.@Nullable Date x) throws SQLException;
+  void setString(String parameterName, String x) throws SQLException;
 
   List<String> getParameterNames() throws SQLException;
 }
