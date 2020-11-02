@@ -163,7 +163,7 @@ public class BatchedQuery extends SimpleQuery {
       s.append(nativeSql, chunkStart[0], chunkEnd[0]);
       for (int j = 1; j < chunkStart.length; j++) {
         if (params == null) {
-          getNativeQuery().appendBindName(s, pos++);
+          NativeQuery.appendBindName(s, pos++);
         } else {
           s.append(params.toString(pos++, true));
         }
