@@ -8,8 +8,6 @@ package org.postgresql.core;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.postgresql.core.v3.SimpleParameterList;
-import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 
 import org.junit.Assert;
@@ -332,43 +330,6 @@ public class ParserTest {
     s = nativeQuery.bindName(1);
     assertEquals("$1", s);
 
-    query = "select :ASTR||:bStr||:c AS \n" +
-        "teststr";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
-    assertEquals(1, qry.size());
-    nativeQuery = qry.get(0);
-
-    final SimpleParameterList parameters = new SimpleParameterList(3,
-        new TypeTransferModeRegistry() {
-          @Override
-          public boolean useBinaryForSend(int oid) {
-            return false;
-          }
-
-          @Override
-          public boolean useBinaryForReceive(int oid) {
-            return false;
-          }
-        },
-        ParameterContext.buildNamed(
-            Arrays.asList(-1, -1, -1),
-            Arrays.asList("ASTR", "bStr", "c")
-        )
-    );
-    assertEquals(query, nativeQuery.toString(parameters));
-
-    parameters.setStringParameter(parameters.getIndex("c"), "p3", Oid.VARCHAR);
-    parameters.setStringParameter(parameters.getIndex("bStr"), "p2", Oid.VARCHAR);
-    parameters.setStringParameter(parameters.getIndex("ASTR"), "p1", Oid.VARCHAR);
-    assertEquals
-        (
-            query
-                .replace(":ASTR", "'p1'")
-                .replace(":bStr", "'p2'")
-                .replace(":c", "'p3'"),
-            nativeQuery.toString(parameters)
-        );
-
     query = "SELECT '{}'::int[]";
     qry = Parser.parseJdbcSql(query, true, true, true, false);
     assertEquals(1, qry.size());
@@ -383,41 +344,6 @@ public class ParserTest {
     nativeQuery = qry.get(0);
     assertEquals(query, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.getPlaceholderCount());
-  }
-
-  @Test
-  public void bindParameterReuse() throws SQLException {
-
-    String query;
-    List<NativeQuery> qry;
-    NativeQuery nativeQuery;
-    String s;
-
-    query = "SELECT :a+:a+:a+:b+:c+:b" +
-        "+:c AS a";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
-    assertEquals(1, qry.size());
-    nativeQuery = qry.get(0);
-    s = nativeQuery.bindName(1);
-
-    final SimpleParameterList parameters = new SimpleParameterList(3,
-        new TypeTransferModeRegistry() {
-          @Override
-          public boolean useBinaryForSend(int oid) {
-            return false;
-          }
-
-          @Override
-          public boolean useBinaryForReceive(int oid) {
-            return false;
-          }
-        },
-        ParameterContext.buildNamed(
-            Arrays.asList(-1, -1, -1),
-            Arrays.asList("a", "b", "c")
-        )
-    );
-    assertEquals(query, nativeQuery.toString(parameters));
   }
 
   @Test

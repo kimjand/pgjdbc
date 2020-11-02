@@ -8,7 +8,6 @@ package org.postgresql.core;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-
 /**
  * Represents a query that is ready for execution by backend. The main difference from JDBC is ? are
  * replaced with $1, $2, etc.
@@ -51,7 +50,7 @@ public class NativeQuery {
    * parameter placeholders.
    *
    * @param parameters a ParameterList returned by this Query's {@link Query#createParameterList}
-   *                   method, or {@code null} to leave the parameter placeholders unsubstituted.
+   *        method, or {@code null} to leave the parameter placeholders unsubstituted.
    * @return a human-readable representation of this query
    */
   public String toString(@Nullable ParameterList parameters) {
@@ -95,11 +94,11 @@ public class NativeQuery {
    * @param index index of a bind variable
    * @return bind variable name
    */
-  public String bindName(int index) {
+  public static String bindName(int index) {
     return index < BIND_NAMES.length ? BIND_NAMES[index] : "$" + index;
   }
 
-  public StringBuilder appendBindName(StringBuilder sb, int index) {
+  public static StringBuilder appendBindName(StringBuilder sb, int index) {
     if (index < BIND_NAMES.length) {
       return sb.append(bindName(index));
     }

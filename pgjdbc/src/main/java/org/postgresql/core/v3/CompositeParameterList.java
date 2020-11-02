@@ -18,6 +18,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Parameter list for V3 query strings that contain multiple statements. We delegate to one
@@ -179,6 +180,11 @@ class CompositeParameterList implements V3ParameterList {
 
   @Override
   public int getIndex(String parameterName) {
+    throw new RuntimeException("This should not be called");
+  }
+
+  @Override
+  public List<String> getParameterNames() throws SQLException {
     throw new RuntimeException("This should not be called");
   }
 

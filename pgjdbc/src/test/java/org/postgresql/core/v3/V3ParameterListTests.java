@@ -10,13 +10,19 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.postgresql.core.NativeQuery;
+import org.postgresql.core.Oid;
+import org.postgresql.core.ParameterContext;
+import org.postgresql.core.Parser;
+
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Test cases to make sure the parameterlist implementation works as expected.
  *
  * @author Jeremy Whiting jwhiting@redhat.com
- *
  */
 public class V3ParameterListTests {
   private TypeTransferModeRegistry transferModeRegistry;
@@ -24,15 +30,15 @@ public class V3ParameterListTests {
   @Before
   public void setUp() throws Exception {
     transferModeRegistry = new TypeTransferModeRegistry() {
-        @Override
-        public boolean useBinaryForSend(int oid) {
-            return false;
-        }
+      @Override
+      public boolean useBinaryForSend(int oid) {
+        return false;
+      }
 
-        @Override
-        public boolean useBinaryForReceive(int oid) {
-            return false;
-        }
+      @Override
+      public boolean useBinaryForReceive(int oid) {
+        return false;
+      }
     };
   }
 
@@ -40,8 +46,7 @@ public class V3ParameterListTests {
    * Test to check the merging of two collections of parameters. All elements
    * are kept.
    *
-   * @throws SQLException
-   *           raised exception if setting parameter fails.
+   * @throws SQLException raised exception if setting parameter fails.
    */
   @Test
   public void testMergeOfParameterLists() throws SQLException {
@@ -61,5 +66,55 @@ public class V3ParameterListTests {
     assertEquals(
         "Expected string representation of values does not match outcome.",
         "<[1 ,2 ,3 ,4 ,5 ,6 ,7 ,8]>", s1SPL.toString());
+  }
+
+  @Test
+  public void bindParameterReuse() throws SQLException {
+
+    String query;
+    List<NativeQuery> qry;
+    NativeQuery nativeQuery;
+
+    query = "SELECT :a+:a+:a+:b+:c+:b" +
+        "+:c AS a";
+    qry = Parser.parseJdbcSql(query, true, true, true, false);
+    assertEquals(1, qry.size());
+    nativeQuery = qry.get(0);
+
+    SimpleParameterList parameters = new SimpleParameterList(3,
+        transferModeRegistry,
+        ParameterContext.buildNamed(
+            Arrays.asList(-1, -1, -1),
+            Arrays.asList("a", "b", "c")
+        )
+    );
+    assertEquals(query, nativeQuery.toString(parameters));
+
+    query = "select :ASTR||:bStr||:c AS \n" +
+        "teststr";
+    qry = Parser.parseJdbcSql(query, true, true, true, false);
+    assertEquals(1, qry.size());
+    nativeQuery = qry.get(0);
+
+    parameters = new SimpleParameterList(3,
+        transferModeRegistry,
+        ParameterContext.buildNamed(
+            Arrays.asList(-1, -1, -1),
+            Arrays.asList("ASTR", "bStr", "c")
+        )
+    );
+    assertEquals(query, nativeQuery.toString(parameters));
+
+    parameters.setStringParameter(parameters.getIndex("c"), "p3", Oid.VARCHAR);
+    parameters.setStringParameter(parameters.getIndex("bStr"), "p2", Oid.VARCHAR);
+    parameters.setStringParameter(parameters.getIndex("ASTR"), "p1", Oid.VARCHAR);
+    assertEquals
+        (
+            query
+                .replace(":ASTR", "'p1'")
+                .replace(":bStr", "'p2'")
+                .replace(":c", "'p3'"),
+            nativeQuery.toString(parameters)
+        );
   }
 }

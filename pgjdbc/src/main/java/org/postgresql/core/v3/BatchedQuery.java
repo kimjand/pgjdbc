@@ -21,6 +21,7 @@ import java.util.List;
  *
  * @author Jeremy Whiting jwhiting@redhat.com
  * @author Christopher Deckers (chrriis@gmail.com)
+ *
  */
 public class BatchedQuery extends SimpleQuery {
 

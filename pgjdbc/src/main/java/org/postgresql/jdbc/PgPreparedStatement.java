@@ -68,6 +68,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -190,79 +191,79 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
 
     if (parameterIndex < 1 || parameterIndex > preparedParameters.getParameterCount()) {
       throw new PSQLException(
-          GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              parameterIndex, preparedParameters.getParameterCount()),
-          PSQLState.INVALID_PARAMETER_VALUE);
+        GT.tr("The column index is out of range: {0}, number of columns: {1}.",
+          parameterIndex, preparedParameters.getParameterCount()),
+        PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     int oid;
     switch (sqlType) {
-    case Types.SQLXML:
-      oid = Oid.XML;
-      break;
-    case Types.INTEGER:
-      oid = Oid.INT4;
-      break;
-    case Types.TINYINT:
-    case Types.SMALLINT:
-      oid = Oid.INT2;
-      break;
-    case Types.BIGINT:
-      oid = Oid.INT8;
-      break;
-    case Types.REAL:
-      oid = Oid.FLOAT4;
-      break;
-    case Types.DOUBLE:
-    case Types.FLOAT:
-      oid = Oid.FLOAT8;
-      break;
-    case Types.DECIMAL:
-    case Types.NUMERIC:
-      oid = Oid.NUMERIC;
-      break;
-    case Types.CHAR:
-      oid = Oid.BPCHAR;
-      break;
-    case Types.VARCHAR:
-    case Types.LONGVARCHAR:
-      oid = connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED;
-      break;
-    case Types.DATE:
-      oid = Oid.DATE;
-      break;
-    case Types.TIME:
-    case Types.TIME_WITH_TIMEZONE:
-    case Types.TIMESTAMP_WITH_TIMEZONE:
-    case Types.TIMESTAMP:
-      oid = Oid.UNSPECIFIED;
-      break;
-    case Types.BOOLEAN:
-    case Types.BIT:
-      oid = Oid.BOOL;
-      break;
-    case Types.BINARY:
-    case Types.VARBINARY:
-    case Types.LONGVARBINARY:
-      oid = Oid.BYTEA;
-      break;
-    case Types.BLOB:
-    case Types.CLOB:
-      oid = Oid.OID;
-      break;
-    case Types.REF_CURSOR:
-      oid = Oid.REF_CURSOR;
-      break;
-    case Types.ARRAY:
-    case Types.DISTINCT:
-    case Types.STRUCT:
-    case Types.NULL:
-    case Types.OTHER:
-      oid = Oid.UNSPECIFIED;
-      break;
-    default:
-      // Bad Types value.
-      throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
+      case Types.SQLXML:
+        oid = Oid.XML;
+        break;
+      case Types.INTEGER:
+        oid = Oid.INT4;
+        break;
+      case Types.TINYINT:
+      case Types.SMALLINT:
+        oid = Oid.INT2;
+        break;
+      case Types.BIGINT:
+        oid = Oid.INT8;
+        break;
+      case Types.REAL:
+        oid = Oid.FLOAT4;
+        break;
+      case Types.DOUBLE:
+      case Types.FLOAT:
+        oid = Oid.FLOAT8;
+        break;
+      case Types.DECIMAL:
+      case Types.NUMERIC:
+        oid = Oid.NUMERIC;
+        break;
+      case Types.CHAR:
+        oid = Oid.BPCHAR;
+        break;
+      case Types.VARCHAR:
+      case Types.LONGVARCHAR:
+        oid = connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED;
+        break;
+      case Types.DATE:
+        oid = Oid.DATE;
+        break;
+      case Types.TIME:
+      case Types.TIME_WITH_TIMEZONE:
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+      case Types.TIMESTAMP:
+        oid = Oid.UNSPECIFIED;
+        break;
+      case Types.BOOLEAN:
+      case Types.BIT:
+        oid = Oid.BOOL;
+        break;
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+        oid = Oid.BYTEA;
+        break;
+      case Types.BLOB:
+      case Types.CLOB:
+        oid = Oid.OID;
+        break;
+      case Types.REF_CURSOR:
+        oid = Oid.REF_CURSOR;
+        break;
+      case Types.ARRAY:
+      case Types.DISTINCT:
+      case Types.STRUCT:
+      case Types.NULL:
+      case Types.OTHER:
+        oid = Oid.UNSPECIFIED;
+        break;
+      default:
+        // Bad Types value.
+        throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
     }
     preparedParameters.setNull(parameterIndex, oid);
   }
@@ -357,7 +358,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
     }
   }
 
-  public void setBytes(@Positive int parameterIndex, byte @Nullable [] x) throws SQLException {
+  public void setBytes(@Positive int parameterIndex, byte @Nullable[] x) throws SQLException {
     checkClosed();
 
     if (null == x) {
@@ -534,170 +535,169 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
     }
 
     switch (targetSqlType) {
-    case Types.SQLXML:
-      if (in instanceof SQLXML) {
-        setSQLXML(parameterIndex, (SQLXML) in);
-      } else {
-        setSQLXML(parameterIndex, new PgSQLXML(connection, in.toString()));
-      }
-      break;
-    case Types.INTEGER:
-      setInt(parameterIndex, castToInt(in));
-      break;
-    case Types.TINYINT:
-    case Types.SMALLINT:
-      setShort(parameterIndex, castToShort(in));
-      break;
-    case Types.BIGINT:
-      setLong(parameterIndex, castToLong(in));
-      break;
-    case Types.REAL:
-      setFloat(parameterIndex, castToFloat(in));
-      break;
-    case Types.DOUBLE:
-    case Types.FLOAT:
-      setDouble(parameterIndex, castToDouble(in));
-      break;
-    case Types.DECIMAL:
-    case Types.NUMERIC:
-      setBigDecimal(parameterIndex, castToBigDecimal(in, scale));
-      break;
-    case Types.CHAR:
-      setString(parameterIndex, castToString(in), Oid.BPCHAR);
-      break;
-    case Types.VARCHAR:
-      setString(parameterIndex, castToString(in), getStringType());
-      break;
-    case Types.LONGVARCHAR:
-      if (in instanceof InputStream) {
-        preparedParameters.setText(parameterIndex, (InputStream) in);
-      } else {
+      case Types.SQLXML:
+        if (in instanceof SQLXML) {
+          setSQLXML(parameterIndex, (SQLXML) in);
+        } else {
+          setSQLXML(parameterIndex, new PgSQLXML(connection, in.toString()));
+        }
+        break;
+      case Types.INTEGER:
+        setInt(parameterIndex, castToInt(in));
+        break;
+      case Types.TINYINT:
+      case Types.SMALLINT:
+        setShort(parameterIndex, castToShort(in));
+        break;
+      case Types.BIGINT:
+        setLong(parameterIndex, castToLong(in));
+        break;
+      case Types.REAL:
+        setFloat(parameterIndex, castToFloat(in));
+        break;
+      case Types.DOUBLE:
+      case Types.FLOAT:
+        setDouble(parameterIndex, castToDouble(in));
+        break;
+      case Types.DECIMAL:
+      case Types.NUMERIC:
+        setBigDecimal(parameterIndex, castToBigDecimal(in, scale));
+        break;
+      case Types.CHAR:
+        setString(parameterIndex, castToString(in), Oid.BPCHAR);
+        break;
+      case Types.VARCHAR:
         setString(parameterIndex, castToString(in), getStringType());
-      }
-      break;
-    case Types.DATE:
-      if (in instanceof java.sql.Date) {
-        setDate(parameterIndex, (java.sql.Date) in);
-      } else {
-        java.sql.Date tmpd;
-        if (in instanceof java.util.Date) {
-          tmpd = new java.sql.Date(((java.util.Date) in).getTime());
-        } else if (in instanceof java.time.LocalDate) {
-          setDate(parameterIndex, (java.time.LocalDate) in);
-          break;
+        break;
+      case Types.LONGVARCHAR:
+        if (in instanceof InputStream) {
+          preparedParameters.setText(parameterIndex, (InputStream)in);
         } else {
-          tmpd = connection.getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
+          setString(parameterIndex, castToString(in), getStringType());
         }
-        setDate(parameterIndex, tmpd);
-      }
-      break;
-    case Types.TIME:
-      if (in instanceof java.sql.Time) {
-        setTime(parameterIndex, (java.sql.Time) in);
-      } else {
-        java.sql.Time tmpt;
-        if (in instanceof java.util.Date) {
-          tmpt = new java.sql.Time(((java.util.Date) in).getTime());
-        } else if (in instanceof java.time.LocalTime) {
-          setTime(parameterIndex, (java.time.LocalTime) in);
-          break;
+        break;
+      case Types.DATE:
+        if (in instanceof java.sql.Date) {
+          setDate(parameterIndex, (java.sql.Date) in);
         } else {
-          tmpt = connection.getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
+          java.sql.Date tmpd;
+          if (in instanceof java.util.Date) {
+            tmpd = new java.sql.Date(((java.util.Date) in).getTime());
+          } else if (in instanceof java.time.LocalDate) {
+            setDate(parameterIndex, (java.time.LocalDate) in);
+            break;
+          } else {
+            tmpd = connection.getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
+          }
+          setDate(parameterIndex, tmpd);
         }
-        setTime(parameterIndex, tmpt);
-      }
-      break;
-    case Types.TIMESTAMP:
-      if (in instanceof PGTimestamp) {
-        setObject(parameterIndex, in);
-      } else if (in instanceof java.sql.Timestamp) {
-        setTimestamp(parameterIndex, (java.sql.Timestamp) in);
-      } else {
-        java.sql.Timestamp tmpts;
-        if (in instanceof java.util.Date) {
-          tmpts = new java.sql.Timestamp(((java.util.Date) in).getTime());
-        } else if (in instanceof java.time.LocalDateTime) {
-          setTimestamp(parameterIndex, (java.time.LocalDateTime) in);
-          break;
+        break;
+      case Types.TIME:
+        if (in instanceof java.sql.Time) {
+          setTime(parameterIndex, (java.sql.Time) in);
         } else {
-          tmpts = connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
+          java.sql.Time tmpt;
+          if (in instanceof java.util.Date) {
+            tmpt = new java.sql.Time(((java.util.Date) in).getTime());
+          } else if (in instanceof java.time.LocalTime) {
+            setTime(parameterIndex, (java.time.LocalTime) in);
+            break;
+          } else {
+            tmpt = connection.getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
+          }
+          setTime(parameterIndex, tmpt);
         }
-        setTimestamp(parameterIndex, tmpts);
-      }
-      break;
-    case Types.TIMESTAMP_WITH_TIMEZONE:
-      if (in instanceof java.time.OffsetDateTime) {
-        setTimestamp(parameterIndex, (java.time.OffsetDateTime) in);
-      } else if (in instanceof PGTimestamp) {
-        setObject(parameterIndex, in);
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot cast an instance of {0} to type {1}",
-                in.getClass().getName(), "Types.TIMESTAMP_WITH_TIMEZONE"),
-            PSQLState.INVALID_PARAMETER_TYPE);
-      }
-      break;
-    case Types.BOOLEAN:
-    case Types.BIT:
-      setBoolean(parameterIndex, BooleanTypeUtil.castToBoolean(in));
-      break;
-    case Types.BINARY:
-    case Types.VARBINARY:
-    case Types.LONGVARBINARY:
-      setObject(parameterIndex, in);
-      break;
-    case Types.BLOB:
-      if (in instanceof Blob) {
-        setBlob(parameterIndex, (Blob) in);
-      } else if (in instanceof InputStream) {
-        long oid = createBlob(parameterIndex, (InputStream) in, -1);
-        setLong(parameterIndex, oid);
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot cast an instance of {0} to type {1}",
-                in.getClass().getName(), "Types.BLOB"),
-            PSQLState.INVALID_PARAMETER_TYPE);
-      }
-      break;
-    case Types.CLOB:
-      if (in instanceof Clob) {
-        setClob(parameterIndex, (Clob) in);
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot cast an instance of {0} to type {1}",
-                in.getClass().getName(), "Types.CLOB"),
-            PSQLState.INVALID_PARAMETER_TYPE);
-      }
-      break;
-    case Types.ARRAY:
-      if (in instanceof Array) {
-        setArray(parameterIndex, (Array) in);
-      } else {
-        try {
-          setObjectArray(parameterIndex, in);
-        } catch (Exception e) {
+        break;
+      case Types.TIMESTAMP:
+        if (in instanceof PGTimestamp) {
+          setObject(parameterIndex, in);
+        } else if (in instanceof java.sql.Timestamp) {
+          setTimestamp(parameterIndex, (java.sql.Timestamp) in);
+        } else {
+          java.sql.Timestamp tmpts;
+          if (in instanceof java.util.Date) {
+            tmpts = new java.sql.Timestamp(((java.util.Date) in).getTime());
+          } else if (in instanceof java.time.LocalDateTime) {
+            setTimestamp(parameterIndex, (java.time.LocalDateTime) in);
+            break;
+          } else {
+            tmpts = connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
+          }
+          setTimestamp(parameterIndex, tmpts);
+        }
+        break;
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+        if (in instanceof java.time.OffsetDateTime) {
+          setTimestamp(parameterIndex, (java.time.OffsetDateTime) in);
+        } else if (in instanceof PGTimestamp) {
+          setObject(parameterIndex, in);
+        } else {
           throw new PSQLException(
-              GT.tr("Cannot cast an instance of {0} to type {1}", in.getClass().getName(), "Types" +
-                  ".ARRAY"),
-              PSQLState.INVALID_PARAMETER_TYPE, e);
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  in.getClass().getName(), "Types.TIMESTAMP_WITH_TIMEZONE"),
+              PSQLState.INVALID_PARAMETER_TYPE);
         }
-      }
-      break;
-    case Types.DISTINCT:
-      bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
-      break;
-    case Types.OTHER:
-      if (in instanceof PGobject) {
-        setPGobject(parameterIndex, (PGobject) in);
-      } else if (in instanceof Map) {
-        setMap(parameterIndex, (Map<?, ?>) in);
-      } else {
+        break;
+      case Types.BOOLEAN:
+      case Types.BIT:
+        setBoolean(parameterIndex, BooleanTypeUtil.castToBoolean(in));
+        break;
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+        setObject(parameterIndex, in);
+        break;
+      case Types.BLOB:
+        if (in instanceof Blob) {
+          setBlob(parameterIndex, (Blob) in);
+        } else if (in instanceof InputStream) {
+          long oid = createBlob(parameterIndex, (InputStream) in, -1);
+          setLong(parameterIndex, oid);
+        } else {
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  in.getClass().getName(), "Types.BLOB"),
+              PSQLState.INVALID_PARAMETER_TYPE);
+        }
+        break;
+      case Types.CLOB:
+        if (in instanceof Clob) {
+          setClob(parameterIndex, (Clob) in);
+        } else {
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  in.getClass().getName(), "Types.CLOB"),
+              PSQLState.INVALID_PARAMETER_TYPE);
+        }
+        break;
+      case Types.ARRAY:
+        if (in instanceof Array) {
+          setArray(parameterIndex, (Array) in);
+        } else {
+          try {
+            setObjectArray(parameterIndex, in);
+          } catch (Exception e) {
+            throw new PSQLException(
+                GT.tr("Cannot cast an instance of {0} to type {1}", in.getClass().getName(), "Types.ARRAY"),
+                PSQLState.INVALID_PARAMETER_TYPE, e);
+          }
+        }
+        break;
+      case Types.DISTINCT:
         bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
-      }
-      break;
-    default:
-      throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
-          PSQLState.INVALID_PARAMETER_TYPE);
+        break;
+      case Types.OTHER:
+        if (in instanceof PGobject) {
+          setPGobject(parameterIndex, (PGobject) in);
+        } else if (in instanceof Map) {
+          setMap(parameterIndex, (Map<?, ?>) in);
+        } else {
+          bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
+        }
+        break;
+      default:
+        throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
+            PSQLState.INVALID_PARAMETER_TYPE);
     }
   }
 
@@ -989,15 +989,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
         setObjectArray(parameterIndex, x);
       } catch (Exception e) {
         throw new PSQLException(
-            GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types" +
-                ".ARRAY"),
+            GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types.ARRAY"),
             PSQLState.INVALID_PARAMETER_TYPE, e);
       }
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
-          "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an " +
-              "explicit Types value to specify the type to use.",
+          "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.",
           x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
     }
   }
@@ -1021,8 +1019,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
    * the source of the string is known safe (i.e. {@code Integer.toString()})
    *
    * @param paramIndex parameter index
-   * @param s          value (the value should already be escaped)
-   * @param oid        type oid
+   * @param s value (the value should already be escaped)
+   * @param oid type oid
    * @throws SQLException if something goes wrong
    */
   protected void bindLiteral(@Positive int paramIndex,
@@ -1040,8 +1038,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
    * bindString with no escaping; the per-protocol ParameterList does escaping as needed.
    *
    * @param paramIndex parameter index
-   * @param s          value
-   * @param oid        type oid
+   * @param s value
+   * @param oid type oid
    * @throws SQLException if something goes wrong
    */
   private void bindString(@Positive int paramIndex, String s, int oid) throws SQLException {
@@ -1717,5 +1715,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
   @Override
   public void setDate(String parameterName, java.sql.@Nullable Date x) throws SQLException {
     this.setDate(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public List<String> getParameterNames() throws SQLException {
+    return preparedParameters.getParameterNames();
   }
 }

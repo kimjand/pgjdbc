@@ -14,6 +14,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * <p>Abstraction of a list of parameters to be substituted into a Query. The protocol-specific details
@@ -189,7 +190,7 @@ public interface ParameterList {
 
   /**
    * Return a human-readable representation of a particular parameter in this ParameterList. If the
-   * parameter is not bound, returns "?", or ":parameterName" in case the ParameterList was created with named parameters.
+   * parameter is not bound, returns "?".
    *
    * @param index the 1-based parameter index to bind.
    * @param standardConformingStrings true if \ is not an escape character in strings literals
@@ -211,4 +212,6 @@ public interface ParameterList {
   @Nullable Object @Nullable [] getValues();
 
   int getIndex(String parameterName) throws SQLException;
+
+  List<String> getParameterNames() throws SQLException;
 }

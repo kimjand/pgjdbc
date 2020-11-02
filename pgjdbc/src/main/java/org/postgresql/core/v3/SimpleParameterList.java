@@ -24,14 +24,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Parameter list for a single-statement V3 query.
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
-public class SimpleParameterList implements V3ParameterList {
+class SimpleParameterList implements V3ParameterList {
 
   private static final byte IN = 1;
   private static final byte OUT = 2;
@@ -500,6 +504,16 @@ public class SimpleParameterList implements V3ParameterList {
     }
 
     return index;
+  }
+
+  @Override
+  public List<String> getParameterNames() throws PSQLException {
+    if (this.paramNames == null) {
+      throw new PSQLException(
+          GT.tr("The ParameterList was not created with named parameters."),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    return this.paramNames;
   }
 
   public int[] getParamTypes() {
