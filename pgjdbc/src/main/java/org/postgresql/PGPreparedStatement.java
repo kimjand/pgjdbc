@@ -472,9 +472,8 @@ public interface PGPreparedStatement extends PGStatement {
   }
 
   /**
-   * Returns A List of placeholder names, in order corresponding to the first occurrence of each
+   * @return a List of placeholder names, in order corresponding to the first occurrence of each
    * name
-   *
    * @throws SQLException if something goes wrong
    */
   List<String> getParameterNames() throws SQLException;
