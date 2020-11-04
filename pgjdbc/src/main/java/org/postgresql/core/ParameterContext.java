@@ -65,10 +65,8 @@ public class ParameterContext {
    * @param i 0-indexed position in the order of first appearance
    * @return The name of the placeholder at this backend parameter position
    */
-  public String getPlaceholderName(int i) throws SQLException {
-    if (placeholderNames == null) {
-      throw new SQLException("PlaceholderName is not available");
-    }
+  public String getPlaceholderName(int i) {
+    assert placeholderNames != null;
     return placeholderNames.get(i);
   }
 
@@ -76,10 +74,8 @@ public class ParameterContext {
    * @param i 0-indexed position in the order of appearance
    * @return The position of the placeholder in the SQL text for this placeholder index
    */
-  public int getPlaceholderPosition(int i) throws SQLException {
-    if (placeholderPositions == null) {
-      throw new SQLException("PlaceholderPosition is not available");
-    }
+  public int getPlaceholderPosition(int i) {
+    assert placeholderPositions != null;
     return placeholderPositions.get(i);
   }
 
@@ -87,17 +83,13 @@ public class ParameterContext {
    * @param i 0-indexed position in the order of appearance
    * @return The position of the placeholder in the order of first appearance of each placeholder
    */
-  public int getPlaceholderAtPosition(int i) throws SQLException {
-    if (placeholderAtPosition == null) {
-      throw new SQLException("PlaceholderAtPosition is not available");
-    }
+  public int getPlaceholderAtPosition(int i) {
+    assert placeholderAtPosition != null;
     return placeholderAtPosition.get(i);
   }
 
-  public int getLatestPlaceholderPosition() throws SQLException {
-    if (placeholderAtPosition == null || placeholderPositions == null) {
-      throw new SQLException("LatestPlaceholderPosition is not available");
-    }
+  public int getLatestPlaceholderPosition() {
+    assert placeholderPositions != null;
     return placeholderPositions.get(placeholderPositions.size() - 1);
   }
 
