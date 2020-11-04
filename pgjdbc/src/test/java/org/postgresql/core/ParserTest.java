@@ -25,8 +25,8 @@ import java.util.List;
 public class ParserTest {
 
   /**
-   * Test to make sure delete command is detected by parser and detected via
-   * api. Mix up the case of the command to check detection continues to work.
+   * Test to make sure delete command is detected by parser and detected via api. Mix up the case of
+   * the command to check detection continues to work.
    */
   @Test
   public void testDeleteCommandParsing() {
@@ -301,61 +301,106 @@ public class ParserTest {
   }
 
   @Test
-  public void bindParameter() throws SQLException {
-    String query;
-    List<NativeQuery> qry;
+  public void namedPlaceholderSimple() throws SQLException {
+    String strSQL;
     NativeQuery nativeQuery;
-    String s;
 
-    query = "SELECT ?";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
-    assertEquals(1, qry.size());
-    nativeQuery = qry.get(0);
-    s = nativeQuery.bindName(1);
-    assertEquals("$1", s);
+    // Basic
+    strSQL = "SELECT :PARAM";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("PARAM", nativeQuery.parameterCtx.getPlaceholderName(0));
 
-    query = "SELECT :PARAM";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
-    assertEquals(1, qry.size());
-    nativeQuery = qry.get(0);
-    s = nativeQuery.bindName(1);
-    assertEquals("$1", s);
+    // Something with a CAST in it
+    strSQL = "SELECT :PARAM::boolean";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("PARAM", nativeQuery.parameterCtx.getPlaceholderName(0));
 
-    query = "SELECT :PARAM::boolean";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
-    assertEquals(1, qry.size());
-    nativeQuery = qry.get(0);
-    s = nativeQuery.bindName(1);
-    assertEquals("$1", s);
+    // Something with a CAST but no placeholders
+    strSQL = "SELECT '{}'::int[]";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(strSQL, nativeQuery.nativeSql);
+    assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
-    query = "SELECT '{}'::int[]";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
-    assertEquals(1, qry.size());
-    nativeQuery = qry.get(0);
-    assertEquals(query, nativeQuery.nativeSql);
-    assertEquals(0, nativeQuery.parameterCtx.getPlaceholderCount());
-
-    query = "insert into test_logic_table\n"
+    strSQL = "insert into test_logic_table\n"
         + "  select id, md5(random()::text) as name from generate_series(1, 200000) as id";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
-    assertEquals(1, qry.size());
-    nativeQuery = qry.get(0);
-    assertEquals(query, nativeQuery.nativeSql);
-    assertEquals(0, nativeQuery.parameterCtx.getPlaceholderCount());
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(strSQL, nativeQuery.nativeSql);
+    assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
+
+    // Because somebody will try to do this
+    strSQL = "SELECT $1";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(strSQL, nativeQuery.nativeSql);
+    assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
+
+    strSQL = "SELECT :$1";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("$1", nativeQuery.parameterCtx.getPlaceholderName(0));
+
+    // Or something like this
+    strSQL = "SELECT $$PARAM$$";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(strSQL, nativeQuery.nativeSql);
+    assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
+
+    strSQL = "SELECT :$$PARAM$$";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("$$PARAM$$", nativeQuery.parameterCtx.getPlaceholderName(0));
+
+    // Comments must end the capture of a placeholder name
+    strSQL = "SELECT :param--Lovely";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("param", nativeQuery.parameterCtx.getPlaceholderName(0));
+
+    // Placeholder names must not be captured inside comments
+    strSQL = "SELECT a--:param";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(strSQL, nativeQuery.nativeSql);
+    assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
+
+    // Or block comments
+    strSQL = "SELECT :paramA, /* "
+        + ":NotAPlaceholder,"
+        + "*/:paramB";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(2, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(2, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("paramA", nativeQuery.parameterCtx.getPlaceholderName(0));
+    assertEquals("paramB", nativeQuery.parameterCtx.getPlaceholderName(1));
+
   }
 
   @Test
-  public void bindParameterComposite() throws SQLException {
+  public void namedPlaceholderComposite() throws SQLException {
 
-    String query;
-    List<NativeQuery> qry;
-    NativeQuery nativeQuery;
-    String s;
-
-    query = "SELECT :a; SELECT :b";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
+    String query = "SELECT :a; SELECT :b";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, false);
     assertEquals(2, qry.size());
+
+    NativeQuery nativeQuery;
     nativeQuery = qry.get(0);
-    s = nativeQuery.bindName(1);
+    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("a", nativeQuery.parameterCtx.getPlaceholderName(0));
+
+    nativeQuery = qry.get(1);
+    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("b", nativeQuery.parameterCtx.getPlaceholderName(0));
   }
 }

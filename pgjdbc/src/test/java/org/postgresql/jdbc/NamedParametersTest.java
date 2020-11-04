@@ -85,11 +85,13 @@ public class NamedParametersTest extends BaseTest4 {
       PreparedStatement preparedStatement = con.prepareStatement(sql);
       PGPreparedStatement ps = preparedStatement.unwrap(PGPreparedStatement.class);
 
+      // Test toString before bind
       assertEquals(sql, preparedStatement.toString());
 
       ps.setString("a", "1");
       ps.setString("aa", "2");
 
+      // Test toString after bind
       assertEquals("select '2'||'2'||'1' AS teststr", preparedStatement.toString());
 
       preparedStatement.execute();

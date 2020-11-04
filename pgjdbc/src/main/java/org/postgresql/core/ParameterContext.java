@@ -124,7 +124,7 @@ public class ParameterContext {
   /**
    * @return Returns the number of placeholder appearances in the SQL text
    */
-  public int getPlaceholderCount() {
+  public int placeholderCount() {
     return placeholderPositions == null ? 0 : placeholderPositions.size();
   }
 
@@ -136,7 +136,7 @@ public class ParameterContext {
       return placeholderNames.size();
     }
 
-    return getPlaceholderCount();
+    return placeholderCount();
   }
 
   public List<Integer> getPlaceholderPositions() {

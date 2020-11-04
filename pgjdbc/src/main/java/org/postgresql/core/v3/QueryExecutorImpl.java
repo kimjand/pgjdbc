@@ -262,7 +262,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       NativeQuery nativeQuery = queries.get(i);
       offsets[i] = offset;
       subqueries[i] = new SimpleQuery(nativeQuery, this, isColumnSanitiserDisabled());
-      offset += nativeQuery.parameterCtx.getPlaceholderCount();
+      offset += nativeQuery.parameterCtx.placeholderCount();
     }
 
     return new CompositeQuery(subqueries, offsets);
