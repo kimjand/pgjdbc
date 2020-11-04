@@ -51,20 +51,22 @@ public class NamedParametersTest extends BaseTest4 {
   public void setValuesByIndex() throws Exception {
     {
       PgPreparedStatement ps =
-          (PgPreparedStatement) con.prepareStatement("select :1||:2||:3 AS teststr");
+          (PgPreparedStatement) con.prepareStatement("select :a||:b||:c AS teststr");
 
+      int i = 1;
       for (String name : ps.getParameterNames()) {
         switch (name) {
-          case "1":
-            ps.setString(1, "3");
+          case "a":
+            ps.setString(i, "333");
             break;
-          case "2":
-            ps.setString(2, "1");
+          case "b":
+            ps.setString(i, "1");
             break;
-          case "3":
-            ps.setString(3, "2");
+          case "c":
+            ps.setString(i, "222");
             break;
         }
+        i++;
       }
 
       ps.execute();
@@ -72,7 +74,7 @@ public class NamedParametersTest extends BaseTest4 {
       resultSet.next();
 
       final String testStr = resultSet.getString("testStr");
-      Assert.assertEquals("312", testStr);
+      Assert.assertEquals("3331222", testStr);
     }
   }
 
