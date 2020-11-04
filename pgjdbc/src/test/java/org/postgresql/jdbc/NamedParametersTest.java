@@ -21,8 +21,6 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class NamedParametersTest extends BaseTest4 {
 
