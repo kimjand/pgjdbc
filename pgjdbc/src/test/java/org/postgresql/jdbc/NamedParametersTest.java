@@ -8,7 +8,6 @@ package org.postgresql.jdbc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import org.postgresql.PGPreparedStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.jdbc2.BatchExecuteTest;
@@ -49,21 +48,50 @@ public class NamedParametersTest extends BaseTest4 {
   }
 
   @Test
+  public void setValuesByIndex() throws Exception {
+    {
+      PgPreparedStatement ps =
+          (PgPreparedStatement) con.prepareStatement("select :1||:2||:3 AS teststr");
+
+      for (String name : ps.getParameterNames()) {
+        switch (name) {
+        case "1":
+          ps.setString(1, "3");
+          break;
+        case "2":
+          ps.setString(2, "1");
+          break;
+        case "3":
+          ps.setString(3, "2");
+          break;
+        }
+      }
+
+      ps.execute();
+      final ResultSet resultSet = ps.getResultSet();
+      resultSet.next();
+
+      final String testStr = resultSet.getString("testStr");
+      Assert.assertEquals("312", testStr);
+    }
+  }
+
+  @Test
   public void setString() throws Exception {
     {
       PreparedStatement preparedStatement = con.prepareStatement("select :ASTR||:bStr||:c AS "
           + "teststr");
-      PGPreparedStatement ps = preparedStatement.unwrap(PGPreparedStatement.class);
+      PgPreparedStatement ps = preparedStatement.unwrap(PgPreparedStatement.class);
       final String failureParameterName = "BsTr";
       try {
         ps.setString(failureParameterName, "1");
         fail("Should throw a SQLException");
       } catch (SQLException ex) {
         assertEquals(String.format("The parameterName was not found : %s. The following names "
-            + "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{
-              "ASTR",
-              "bStr",
-              "c"})),
+                + "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{
+                "ASTR",
+                "bStr",
+                "c"})),
             ex.getMessage());
       }
       ps.setString("bStr", "1");
@@ -83,7 +111,7 @@ public class NamedParametersTest extends BaseTest4 {
     {
       final String sql = "select :aa||:aa||:a AS teststr";
       PreparedStatement preparedStatement = con.prepareStatement(sql);
-      PGPreparedStatement ps = preparedStatement.unwrap(PGPreparedStatement.class);
+      PgPreparedStatement ps = preparedStatement.unwrap(PgPreparedStatement.class);
 
       // Test toString before bind
       assertEquals(sql, preparedStatement.toString());

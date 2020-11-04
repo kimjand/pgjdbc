@@ -383,6 +383,12 @@ public class ParserTest {
     assertEquals("paramA", nativeQuery.parameterCtx.getPlaceholderName(0));
     assertEquals("paramB", nativeQuery.parameterCtx.getPlaceholderName(1));
 
+    // Placeholder names must not start with a number
+    strSQL = "SELECT :1param";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(strSQL, nativeQuery.nativeSql);
+    assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
   }
 
   @Test

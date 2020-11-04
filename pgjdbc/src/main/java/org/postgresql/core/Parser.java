@@ -183,7 +183,7 @@ public class Parser {
           }
           break;
 
-        case ':': { // possibly named parameter start
+        case ':': { // possibly named placerholder start
           if (!isBatchedReWriteConfigured || !withParameters) {
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -202,8 +202,8 @@ public class Parser {
               if (i + 1 < aChars.length && aChars[i + 1] == ':') {
                 nativeSql.append("::");
                 i += 2;
-                fragmentStart = i;
               }
+              fragmentStart = i;
             }
             break;
           } // Fall-through to default when isBatchedReWriteConfigured == true
