@@ -139,11 +139,6 @@ public class NamedParametersTest extends BaseTest4 {
     {
       TestUtil.createTable(con, "test_dates", "pk INTEGER, d1 date, d2 date, d3 date");
 
-      final Logger logger = Logger.getLogger("org.postgresql");
-      logger.setLevel(Level.FINEST);
-      logger.getParent().setLevel(Level.FINEST);
-      logger.getParent().getHandlers()[0].setLevel(Level.FINEST);
-
       final java.sql.Date sqlDate = java.sql.Date.valueOf(LocalDate.now());
       {
         final String insertSQL = "INSERT INTO test_dates( d1, pk, d2, d3 ) values ( :date, :pk, "
