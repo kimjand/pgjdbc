@@ -43,13 +43,15 @@ public class ParameterContext {
       placeholderPositions = new ArrayList<>();
     }
 
+    placeholderPositions.add(position);
+    int bindIndex = placeholderPositions.size() - 1;
+
     if (placeholderAtPosition == null) {
       placeholderAtPosition = new ArrayList<>();
     }
 
-    placeholderPositions.add(position);
-    int bindIndex = placeholderPositions.size() - 1;
     placeholderAtPosition.add(bindIndex);
+
     return bindIndex + 1;
   }
 
@@ -143,7 +145,7 @@ public class ParameterContext {
     return placeholderCount();
   }
 
-  public List<Integer> getPlaceholderPositions() {
+  public @Nullable List<Integer> getPlaceholderPositions() {
     assert placeholderPositions != null;
     return placeholderPositions;
   }
