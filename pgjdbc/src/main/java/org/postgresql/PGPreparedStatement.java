@@ -106,6 +106,7 @@ public interface PGPreparedStatement extends PGStatement {
 
   /**
    * @see java.sql.PreparedStatement#setUnicodeStream(int, InputStream, int)
+   * @deprecated Use {@code setCharacterStream}
    */
   @Deprecated
   void setUnicodeStream(String parameterName, java.io.InputStream x,
