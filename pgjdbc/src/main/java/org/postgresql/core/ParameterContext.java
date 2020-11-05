@@ -97,7 +97,9 @@ public class ParameterContext {
   }
 
   public int getLatestPlaceholderPosition() {
-    assert placeholderPositions != null;
+    if (placeholderPositions == null) {
+      throw new RuntimeException("Call hasParameters() first.");
+    }
     return placeholderPositions.get(placeholderPositions.size() - 1);
   }
 
@@ -114,20 +116,19 @@ public class ParameterContext {
     if (placeholderPositions == null) {
       placeholderPositions = new ArrayList<>();
     }
-
-    if (placeholderAtPosition == null) {
-      placeholderAtPosition = new ArrayList<>();
-    }
+    placeholderPositions.add(position);
 
     if (placeholderNames == null) {
       placeholderNames = new ArrayList<>();
     }
-
-    placeholderPositions.add(position);
     int bindIndex = placeholderNames.indexOf(bindName);
     if (bindIndex == -1) {
       bindIndex = placeholderNames.size();
       placeholderNames.add(bindName);
+    }
+
+    if (placeholderAtPosition == null) {
+      placeholderAtPosition = new ArrayList<>();
     }
     placeholderAtPosition.add(bindIndex);
     return bindIndex + 1;
