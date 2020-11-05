@@ -342,6 +342,13 @@ public class ParserTest {
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
+
+    // Review comment
+    strSQL = "select * from foo where name like ':foo'";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(strSQL, nativeQuery.nativeSql);
+    assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
   }
 
   @Test
