@@ -68,7 +68,9 @@ public class ParameterContext {
    * @return The name of the placeholder at this backend parameter position
    */
   public String getPlaceholderName(int i) {
-    assert placeholderNames != null;
+    if (placeholderNames == null) {
+      throw new RuntimeException("Call hasNamedParameters() first.");
+    }
     return placeholderNames.get(i);
   }
 
@@ -77,7 +79,9 @@ public class ParameterContext {
    * @return The position of the placeholder in the SQL text for this placeholder index
    */
   public int getPlaceholderPosition(int i) {
-    assert placeholderPositions != null;
+    if (placeholderPositions == null) {
+      throw new RuntimeException("Call hasParameters() first.");
+    }
     return placeholderPositions.get(i);
   }
 
@@ -86,7 +90,9 @@ public class ParameterContext {
    * @return The position of the placeholder in the order of first appearance of each placeholder
    */
   public int getPlaceholderAtPosition(int i) {
-    assert placeholderAtPosition != null;
+    if (placeholderAtPosition == null) {
+      throw new RuntimeException("Call hasParameters() first.");
+    }
     return placeholderAtPosition.get(i);
   }
 
