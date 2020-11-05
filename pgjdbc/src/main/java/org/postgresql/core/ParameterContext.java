@@ -146,7 +146,6 @@ public class ParameterContext {
   }
 
   public @Nullable List<Integer> getPlaceholderPositions() {
-    assert placeholderPositions != null;
     return placeholderPositions;
   }
 
