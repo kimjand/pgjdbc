@@ -124,9 +124,9 @@ public class NamedParametersTest extends BaseTest4 {
       } catch (SQLException ex) {
         assertEquals(String.format("The parameterName was not found : %s. The following names "
                 + "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{
-                "ASTR",
-                "bStr",
-                "c"})),
+                  "ASTR",
+                  "bStr",
+                  "c"})),
             ex.getMessage());
       }
       ps.setString("bStr", "1");
@@ -176,15 +176,15 @@ public class NamedParametersTest extends BaseTest4 {
       int i = 1;
       for (String name : ps.getParameterNames()) {
         switch (name) {
-        case "a":
-          ps.setString(i, "333");
-          break;
-        case "b":
-          ps.setString(i, "1");
-          break;
-        case "c":
-          ps.setString(i, "222");
-          break;
+          case "a":
+            ps.setString(i, "333");
+            break;
+          case "b":
+            ps.setString(i, "1");
+            break;
+          case "c":
+            ps.setString(i, "222");
+            break;
         }
         i++;
       }
