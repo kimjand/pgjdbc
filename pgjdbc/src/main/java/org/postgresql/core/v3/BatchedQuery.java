@@ -10,7 +10,6 @@ import org.postgresql.core.ParameterList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,14 +20,13 @@ import java.util.List;
  *
  * @author Jeremy Whiting jwhiting@redhat.com
  * @author Christopher Deckers (chrriis@gmail.com)
- *
  */
 public class BatchedQuery extends SimpleQuery {
 
-  private @Nullable String sql;
   private final int valuesBraceOpenPosition;
   private final int valuesBraceClosePosition;
   private final int batchSize;
+  private @Nullable String sql;
   private BatchedQuery @Nullable [] blocks;
 
   public BatchedQuery(NativeQuery query, TypeTransferModeRegistry transferModeRegistry,
@@ -77,8 +75,7 @@ public class BatchedQuery extends SimpleQuery {
   }
 
   /**
-   * Method to return the sql based on number of batches. Skipping the initial
-   * batch.
+   * Method to return the sql based on number of batches. Skipping the initial batch.
    */
   @Override
   public String getNativeSql() {
