@@ -105,9 +105,6 @@ public class BatchedQuery extends SimpleQuery {
     int valuesBlockCharCount = 0;
     // Split the values section around every dynamic parameter.
     List<Integer> bindPositions = getNativeQuery().parameterCtx.getPlaceholderPositions();
-    if (bindPositions == null) {
-      bindPositions = new ArrayList<>();
-    }
 
     int[] chunkStart = new int[1 + bindPositions.size()];
     int[] chunkEnd = new int[1 + bindPositions.size()];

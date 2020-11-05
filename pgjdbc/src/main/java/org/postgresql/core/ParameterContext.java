@@ -152,7 +152,10 @@ public class ParameterContext {
     return placeholderCount();
   }
 
-  public @Nullable List<Integer> getPlaceholderPositions() {
+  public List<Integer> getPlaceholderPositions() {
+    if (placeholderPositions == null) {
+      placeholderPositions = new ArrayList<>();
+    }
     return placeholderPositions;
   }
 
