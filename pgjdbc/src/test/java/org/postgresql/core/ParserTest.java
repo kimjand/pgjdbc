@@ -235,69 +235,22 @@ public class ParserTest {
   }
 
   @Test
-  public void insertReturningInWith() throws SQLException {
-    String query =
-        "with x as (insert into mytab(x) values(1) returning x) insert test(id, name) select 1, "
-            + "'value' from test2";
-    List<NativeQuery> qry =
-        Parser.parseJdbcSql(
-            query, true, true, true, true);
-    boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
-    Assert.assertFalse("There's no top-level <<returning>> clause " + query,
-        returningKeywordPresent);
-  }
+  public void namedPlaceholderComposite() throws SQLException {
 
-  @Test
-  public void insertBatchedReWriteOnConflict() throws SQLException {
-    String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
-    SqlCommand command = qry.get(0).getCommand();
-    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
-  }
+    String query = "SELECT :a; SELECT :b";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, false);
+    assertEquals(2, qry.size());
 
-  @Test
-  public void insertBatchedReWriteOnConflictUpdateBind() throws SQLException {
-    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name=?";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
-    SqlCommand command = qry.get(0).getCommand();
-    Assert.assertFalse("update set name=? is NOT compatible with insert rewrite",
-        command.isBatchedReWriteCompatible());
-  }
+    NativeQuery nativeQuery;
+    nativeQuery = qry.get(0);
+    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("a", nativeQuery.parameterCtx.getPlaceholderName(0));
 
-  @Test
-  public void insertBatchedReWriteOnConflictUpdateConstant() throws SQLException {
-    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET "
-        + "name='default'";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
-    SqlCommand command = qry.get(0).getCommand();
-    Assert.assertTrue("update set name='default' is compatible with insert rewrite",
-        command.isBatchedReWriteCompatible());
-  }
-
-  @Test
-  public void insertMultiInsert() throws SQLException {
-    String query =
-        "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
-    SqlCommand command = qry.get(0).getCommand();
-    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
-  }
-
-  @Test
-  public void valuesTableParse() throws SQLException {
-    String query = "insert into values_table (id, name) values (?,?)";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
-    SqlCommand command = qry.get(0).getCommand();
-    Assert.assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
-
-    query = "insert into table_values (id, name) values (?,?)";
-    qry = Parser.parseJdbcSql(query, true, true, true, true);
-    command = qry.get(0).getCommand();
-    Assert.assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
+    nativeQuery = qry.get(1);
+    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
+    assertEquals("b", nativeQuery.parameterCtx.getPlaceholderName(0));
   }
 
   @Test
@@ -392,21 +345,68 @@ public class ParserTest {
   }
 
   @Test
-  public void namedPlaceholderComposite() throws SQLException {
+  public void insertReturningInWith() throws SQLException {
+    String query =
+        "with x as (insert into mytab(x) values(1) returning x) insert test(id, name) select 1, "
+            + "'value' from test2";
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(
+            query, true, true, true, true);
+    boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
+    Assert.assertFalse("There's no top-level <<returning>> clause " + query,
+        returningKeywordPresent);
+  }
 
-    String query = "SELECT :a; SELECT :b";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, false);
-    assertEquals(2, qry.size());
+  @Test
+  public void insertBatchedReWriteOnConflict() throws SQLException {
+    String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
+  }
 
-    NativeQuery nativeQuery;
-    nativeQuery = qry.get(0);
-    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
-    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
-    assertEquals("a", nativeQuery.parameterCtx.getPlaceholderName(0));
+  @Test
+  public void insertBatchedReWriteOnConflictUpdateBind() throws SQLException {
+    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name=?";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertFalse("update set name=? is NOT compatible with insert rewrite",
+        command.isBatchedReWriteCompatible());
+  }
 
-    nativeQuery = qry.get(1);
-    assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
-    assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
-    assertEquals("b", nativeQuery.parameterCtx.getPlaceholderName(0));
+  @Test
+  public void insertBatchedReWriteOnConflictUpdateConstant() throws SQLException {
+    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET "
+        + "name='default'";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertTrue("update set name='default' is compatible with insert rewrite",
+        command.isBatchedReWriteCompatible());
+  }
+
+  @Test
+  public void insertMultiInsert() throws SQLException {
+    String query =
+        "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
+  }
+
+  @Test
+  public void valuesTableParse() throws SQLException {
+    String query = "insert into values_table (id, name) values (?,?)";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
+
+    query = "insert into table_values (id, name) values (?,?)";
+    qry = Parser.parseJdbcSql(query, true, true, true, true);
+    command = qry.get(0).getCommand();
+    Assert.assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
   }
 }

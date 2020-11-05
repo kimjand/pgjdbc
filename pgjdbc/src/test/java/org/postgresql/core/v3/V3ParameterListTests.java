@@ -42,31 +42,6 @@ public class V3ParameterListTests {
     };
   }
 
-  /**
-   * Test to check the merging of two collections of parameters. All elements are kept.
-   *
-   * @throws SQLException raised exception if setting parameter fails.
-   */
-  @Test
-  public void testMergeOfParameterLists() throws SQLException {
-    SimpleParameterList s1SPL = new SimpleParameterList(8, transferModeRegistry);
-    s1SPL.setIntParameter(1, 1);
-    s1SPL.setIntParameter(2, 2);
-    s1SPL.setIntParameter(3, 3);
-    s1SPL.setIntParameter(4, 4);
-
-    SimpleParameterList s2SPL = new SimpleParameterList(4, transferModeRegistry);
-    s2SPL.setIntParameter(1, 5);
-    s2SPL.setIntParameter(2, 6);
-    s2SPL.setIntParameter(3, 7);
-    s2SPL.setIntParameter(4, 8);
-
-    s1SPL.appendAll(s2SPL);
-    assertEquals(
-        "Expected string representation of values does not match outcome.",
-        "<[1 ,2 ,3 ,4 ,5 ,6 ,7 ,8]>", s1SPL.toString());
-  }
-
   @Test
   public void bindParameterReuse() throws SQLException {
 
@@ -112,5 +87,30 @@ public class V3ParameterListTests {
             .replace(":c", "'p3'"),
         nativeQuery.toString(parameters)
     );
+  }
+
+  /**
+   * Test to check the merging of two collections of parameters. All elements are kept.
+   *
+   * @throws SQLException raised exception if setting parameter fails.
+   */
+  @Test
+  public void testMergeOfParameterLists() throws SQLException {
+    SimpleParameterList s1SPL = new SimpleParameterList(8, transferModeRegistry);
+    s1SPL.setIntParameter(1, 1);
+    s1SPL.setIntParameter(2, 2);
+    s1SPL.setIntParameter(3, 3);
+    s1SPL.setIntParameter(4, 4);
+
+    SimpleParameterList s2SPL = new SimpleParameterList(4, transferModeRegistry);
+    s2SPL.setIntParameter(1, 5);
+    s2SPL.setIntParameter(2, 6);
+    s2SPL.setIntParameter(3, 7);
+    s2SPL.setIntParameter(4, 8);
+
+    s1SPL.appendAll(s2SPL);
+    assertEquals(
+        "Expected string representation of values does not match outcome.",
+        "<[1 ,2 ,3 ,4 ,5 ,6 ,7 ,8]>", s1SPL.toString());
   }
 }

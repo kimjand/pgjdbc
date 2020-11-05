@@ -46,93 +46,6 @@ public class NamedParametersTest extends BaseTest4 {
   }
 
   @Test
-  public void setValuesByIndex() throws Exception {
-    {
-      PgPreparedStatement ps =
-          (PgPreparedStatement) con.prepareStatement("select :a||:b||:c AS teststr");
-
-      int i = 1;
-      for (String name : ps.getParameterNames()) {
-        switch (name) {
-          case "a":
-            ps.setString(i, "333");
-            break;
-          case "b":
-            ps.setString(i, "1");
-            break;
-          case "c":
-            ps.setString(i, "222");
-            break;
-        }
-        i++;
-      }
-
-      ps.execute();
-      final ResultSet resultSet = ps.getResultSet();
-      resultSet.next();
-
-      final String testStr = resultSet.getString("testStr");
-      Assert.assertEquals("3331222", testStr);
-    }
-  }
-
-  @Test
-  public void setString() throws Exception {
-    {
-      PreparedStatement preparedStatement = con.prepareStatement("select :ASTR||:bStr||:c AS "
-          + "teststr");
-      PgPreparedStatement ps = preparedStatement.unwrap(PgPreparedStatement.class);
-      final String failureParameterName = "BsTr";
-      try {
-        ps.setString(failureParameterName, "1");
-        fail("Should throw a SQLException");
-      } catch (SQLException ex) {
-        assertEquals(String.format("The parameterName was not found : %s. The following names "
-                + "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{
-                  "ASTR",
-                  "bStr",
-                  "c"})),
-            ex.getMessage());
-      }
-      ps.setString("bStr", "1");
-      ps.setString("c", "2");
-      ps.setString("ASTR", "3");
-      preparedStatement.execute();
-      final ResultSet resultSet = preparedStatement.getResultSet();
-      resultSet.next();
-
-      final String testStr = resultSet.getString("testStr");
-      Assert.assertEquals("312", testStr);
-    }
-  }
-
-  @Test
-  public void setStringReuse() throws Exception {
-    {
-      final String sql = "select :aa||:aa||:a AS teststr";
-      PreparedStatement preparedStatement = con.prepareStatement(sql);
-      PgPreparedStatement ps = preparedStatement.unwrap(PgPreparedStatement.class);
-
-      // Test toString before bind
-      assertEquals(sql, preparedStatement.toString());
-
-      ps.setString("a", "1");
-      ps.setString("aa", "2");
-
-      // Test toString after bind
-      assertEquals("select '2'||'2'||'1' AS teststr", preparedStatement.toString());
-
-      preparedStatement.execute();
-      final ResultSet resultSet = preparedStatement.getResultSet();
-      resultSet.next();
-
-      final String testStr = resultSet.getString("testStr");
-      Assert.assertEquals("221", testStr);
-      preparedStatement.close();
-    }
-  }
-
-  @Test
   public void setDateReuse() throws Exception {
     {
       TestUtil.createTable(con, "test_dates", "pk INTEGER, d1 date, d2 date, d3 date");
@@ -195,6 +108,93 @@ public class NamedParametersTest extends BaseTest4 {
 
         updateStmt.close();
       }
+    }
+  }
+
+  @Test
+  public void setString() throws Exception {
+    {
+      PreparedStatement preparedStatement = con.prepareStatement("select :ASTR||:bStr||:c AS "
+          + "teststr");
+      PgPreparedStatement ps = preparedStatement.unwrap(PgPreparedStatement.class);
+      final String failureParameterName = "BsTr";
+      try {
+        ps.setString(failureParameterName, "1");
+        fail("Should throw a SQLException");
+      } catch (SQLException ex) {
+        assertEquals(String.format("The parameterName was not found : %s. The following names "
+                + "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{
+                "ASTR",
+                "bStr",
+                "c"})),
+            ex.getMessage());
+      }
+      ps.setString("bStr", "1");
+      ps.setString("c", "2");
+      ps.setString("ASTR", "3");
+      preparedStatement.execute();
+      final ResultSet resultSet = preparedStatement.getResultSet();
+      resultSet.next();
+
+      final String testStr = resultSet.getString("testStr");
+      Assert.assertEquals("312", testStr);
+    }
+  }
+
+  @Test
+  public void setStringReuse() throws Exception {
+    {
+      final String sql = "select :aa||:aa||:a AS teststr";
+      PreparedStatement preparedStatement = con.prepareStatement(sql);
+      PgPreparedStatement ps = preparedStatement.unwrap(PgPreparedStatement.class);
+
+      // Test toString before bind
+      assertEquals(sql, preparedStatement.toString());
+
+      ps.setString("a", "1");
+      ps.setString("aa", "2");
+
+      // Test toString after bind
+      assertEquals("select '2'||'2'||'1' AS teststr", preparedStatement.toString());
+
+      preparedStatement.execute();
+      final ResultSet resultSet = preparedStatement.getResultSet();
+      resultSet.next();
+
+      final String testStr = resultSet.getString("testStr");
+      Assert.assertEquals("221", testStr);
+      preparedStatement.close();
+    }
+  }
+
+  @Test
+  public void setValuesByIndex() throws Exception {
+    {
+      PgPreparedStatement ps =
+          (PgPreparedStatement) con.prepareStatement("select :a||:b||:c AS teststr");
+
+      int i = 1;
+      for (String name : ps.getParameterNames()) {
+        switch (name) {
+        case "a":
+          ps.setString(i, "333");
+          break;
+        case "b":
+          ps.setString(i, "1");
+          break;
+        case "c":
+          ps.setString(i, "222");
+          break;
+        }
+        i++;
+      }
+
+      ps.execute();
+      final ResultSet resultSet = ps.getResultSet();
+      resultSet.next();
+
+      final String testStr = resultSet.getString("testStr");
+      Assert.assertEquals("3331222", testStr);
     }
   }
 
