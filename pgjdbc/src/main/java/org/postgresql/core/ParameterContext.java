@@ -13,6 +13,7 @@ import java.util.List;
 
 public class ParameterContext {
   public static final ParameterContext EMPTY_CONTEXT = new ParameterContext();
+  private static final List<Integer> NO_PLACEHOLDERS = new ArrayList<>();
   private @Nullable BindStyle bindStyle = null;
   private @Nullable List<Integer> placeholderPositions = null;
   private @Nullable List<String> placeholderNames = null;
@@ -154,7 +155,7 @@ public class ParameterContext {
 
   public List<Integer> getPlaceholderPositions() {
     if (placeholderPositions == null) {
-      placeholderPositions = new ArrayList<>();
+      return NO_PLACEHOLDERS;
     }
     return placeholderPositions;
   }
