@@ -50,7 +50,7 @@ public class Parser {
     if (!withParameters && !splitStatements
         && returningColumnNames != null && returningColumnNames.length == 0) {
       return Collections.singletonList(new NativeQuery(query,
-          SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)));
+        SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)));
     }
 
     int fragmentStart = 0;
@@ -115,7 +115,7 @@ public class Parser {
           }
           break;
 
-        case '?': {
+        case '?':
           nativeSql.append(aChars, fragmentStart, i - fragmentStart);
           if (i + 1 < aChars.length && aChars[i + 1] == '?') /* replace ?? with ? */ {
             nativeSql.append('?');
@@ -130,7 +130,6 @@ public class Parser {
           }
           fragmentStart = i + 1;
           break;
-        }
 
         case ';':
           if (inParen == 0) {
@@ -141,8 +140,7 @@ public class Parser {
             }
             fragmentStart = i + 1;
             if (nativeSql.length() > 0) {
-              if (addReturning(nativeSql, currentCommandType, returningColumnNames,
-                  isReturningPresent)) {
+              if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent)) {
                 isReturningPresent = true;
               }
 
@@ -183,7 +181,7 @@ public class Parser {
           }
           break;
 
-        case ':': { // possibly named placerholder start
+        case ':': // possibly named placerholder start
           if (!isBatchedReWriteConfigured || !withParameters) {
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -207,7 +205,6 @@ public class Parser {
             }
             break;
           } // Fall-through to default when isBatchedReWriteConfigured == true
-        }
 
         default:
           if (keywordStart >= 0) {

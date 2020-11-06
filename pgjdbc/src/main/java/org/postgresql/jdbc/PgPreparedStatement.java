@@ -99,202 +99,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
   }
 
-  private static String asString(final Clob in) throws SQLException {
-    return in.getSubString(1, (int) in.length());
-  }
-
-  private static int castToInt(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Integer.parseInt((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).intValue();
-      }
-      if (in instanceof java.util.Date) {
-        return (int) ((java.util.Date) in).getTime();
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? 1 : 0;
-      }
-      if (in instanceof Clob) {
-        return Integer.parseInt(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Integer.parseInt(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "int", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "int");
-  }
-
-  private static short castToShort(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Short.parseShort((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).shortValue();
-      }
-      if (in instanceof java.util.Date) {
-        return (short) ((java.util.Date) in).getTime();
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? (short) 1 : (short) 0;
-      }
-      if (in instanceof Clob) {
-        return Short.parseShort(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Short.parseShort(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "short", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "short");
-  }
-
-  private static long castToLong(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Long.parseLong((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).longValue();
-      }
-      if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime();
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? 1L : 0L;
-      }
-      if (in instanceof Clob) {
-        return Long.parseLong(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Long.parseLong(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "long", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "long");
-  }
-
-  private static float castToFloat(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Float.parseFloat((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).floatValue();
-      }
-      if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime();
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? 1f : 0f;
-      }
-      if (in instanceof Clob) {
-        return Float.parseFloat(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Float.parseFloat(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "float", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "float");
-  }
-
-  private static double castToDouble(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Double.parseDouble((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).doubleValue();
-      }
-      if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime();
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? 1d : 0d;
-      }
-      if (in instanceof Clob) {
-        return Double.parseDouble(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Double.parseDouble(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "double", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "double");
-  }
-
-  private static BigDecimal castToBigDecimal(final Object in, final int scale) throws SQLException {
-    try {
-      BigDecimal rc = null;
-      if (in instanceof String) {
-        rc = new BigDecimal((String) in);
-      } else if (in instanceof BigDecimal) {
-        rc = ((BigDecimal) in);
-      } else if (in instanceof BigInteger) {
-        rc = new BigDecimal((BigInteger) in);
-      } else if (in instanceof Long || in instanceof Integer || in instanceof Short
-          || in instanceof Byte) {
-        rc = BigDecimal.valueOf(((Number) in).longValue());
-      } else if (in instanceof Double || in instanceof Float) {
-        rc = BigDecimal.valueOf(((Number) in).doubleValue());
-      } else if (in instanceof java.util.Date) {
-        rc = BigDecimal.valueOf(((java.util.Date) in).getTime());
-      } else if (in instanceof Boolean) {
-        rc = (Boolean) in ? BigDecimal.ONE : BigDecimal.ZERO;
-      } else if (in instanceof Clob) {
-        rc = new BigDecimal(asString((Clob) in));
-      } else if (in instanceof Character) {
-        rc = new BigDecimal(new char[]{(Character) in});
-      }
-      if (rc != null) {
-        if (scale >= 0) {
-          rc = rc.setScale(scale, RoundingMode.HALF_UP);
-        }
-        return rc;
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "BigDecimal", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "BigDecimal");
-  }
-
-  private static String castToString(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return (String) in;
-      }
-      if (in instanceof Clob) {
-        return asString((Clob) in);
-      }
-      // convert any unknown objects to string.
-      return in.toString();
-
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "String", e);
-    }
-  }
-
-  private static PSQLException cannotCastException(final String fromType, final String toType) {
-    return cannotCastException(fromType, toType, null);
-  }
-
-  private static PSQLException cannotCastException(final String fromType, final String toType,
-      final @Nullable Exception cause) {
-    return new PSQLException(
-        GT.tr("Cannot convert an instance of {0} to type {1}", fromType, toType),
-        PSQLState.INVALID_PARAMETER_TYPE, cause);
-  }
-
   @Override
   public ResultSet executeQuery(String sql) throws SQLException {
     throw new PSQLException(
@@ -389,9 +193,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
 
     if (parameterIndex < 1 || parameterIndex > preparedParameters.getParameterCount()) {
       throw new PSQLException(
-          GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              parameterIndex, preparedParameters.getParameterCount()),
-          PSQLState.INVALID_PARAMETER_VALUE);
+        GT.tr("The column index is out of range: {0}, number of columns: {1}.",
+          parameterIndex, preparedParameters.getParameterCount()),
+        PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     int oid;
@@ -556,7 +360,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
     }
   }
 
-  public void setBytes(@Positive int parameterIndex, byte @Nullable [] x) throws SQLException {
+  public void setBytes(@Positive int parameterIndex, byte @Nullable[] x) throws SQLException {
     checkClosed();
 
     if (null == x) {
@@ -584,8 +388,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
     setTime(parameterIndex, x, null);
   }
 
-  public void setTimestamp(@Positive int parameterIndex, @Nullable Timestamp x)
-      throws SQLException {
+  public void setTimestamp(@Positive int parameterIndex, @Nullable Timestamp x) throws SQLException {
     setTimestamp(parameterIndex, x, null);
   }
 
@@ -937,7 +740,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
         break;
       case Types.LONGVARCHAR:
         if (in instanceof InputStream) {
-          preparedParameters.setText(parameterIndex, (InputStream) in);
+          preparedParameters.setText(parameterIndex, (InputStream)in);
         } else {
           setString(parameterIndex, castToString(in), getStringType());
         }
@@ -1044,8 +847,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
             setObjectArray(parameterIndex, in);
           } catch (Exception e) {
             throw new PSQLException(
-                GT.tr("Cannot cast an instance of {0} to type {1}", in.getClass().getName(), "Types"
-                    + ".ARRAY"),
+                GT.tr("Cannot cast an instance of {0} to type {1}", in.getClass().getName(), "Types.ARRAY"),
                 PSQLState.INVALID_PARAMETER_TYPE, e);
           }
         }
@@ -1068,16 +870,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
     }
   }
 
-  private <A extends @NonNull Object> void setObjectArray(int parameterIndex, A in)
-      throws SQLException {
+  private <A extends @NonNull Object> void setObjectArray(int parameterIndex, A in) throws SQLException {
     final ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
 
     final TypeInfo typeInfo = connection.getTypeInfo();
 
     final int oid = arraySupport.getDefaultArrayTypeOid();
 
-    if (arraySupport.supportBinaryRepresentation(oid)
-        && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+    if (arraySupport.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       bindBytes(parameterIndex, arraySupport.toBinaryRepresentation(connection, in, oid), oid);
     } else {
       if (oid == Oid.UNSPECIFIED) {
@@ -1089,6 +889,202 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
       final Array array = getPGConnection().createArrayOf(baseType, in);
       this.setArray(parameterIndex, array);
     }
+  }
+
+  private static String asString(final Clob in) throws SQLException {
+    return in.getSubString(1, (int) in.length());
+  }
+
+  private static int castToInt(final Object in) throws SQLException {
+    try {
+      if (in instanceof String) {
+        return Integer.parseInt((String) in);
+      }
+      if (in instanceof Number) {
+        return ((Number) in).intValue();
+      }
+      if (in instanceof java.util.Date) {
+        return (int) ((java.util.Date) in).getTime();
+      }
+      if (in instanceof Boolean) {
+        return (Boolean) in ? 1 : 0;
+      }
+      if (in instanceof Clob) {
+        return Integer.parseInt(asString((Clob) in));
+      }
+      if (in instanceof Character) {
+        return Integer.parseInt(in.toString());
+      }
+    } catch (final Exception e) {
+      throw cannotCastException(in.getClass().getName(), "int", e);
+    }
+    throw cannotCastException(in.getClass().getName(), "int");
+  }
+
+  private static short castToShort(final Object in) throws SQLException {
+    try {
+      if (in instanceof String) {
+        return Short.parseShort((String) in);
+      }
+      if (in instanceof Number) {
+        return ((Number) in).shortValue();
+      }
+      if (in instanceof java.util.Date) {
+        return (short) ((java.util.Date) in).getTime();
+      }
+      if (in instanceof Boolean) {
+        return (Boolean) in ? (short) 1 : (short) 0;
+      }
+      if (in instanceof Clob) {
+        return Short.parseShort(asString((Clob) in));
+      }
+      if (in instanceof Character) {
+        return Short.parseShort(in.toString());
+      }
+    } catch (final Exception e) {
+      throw cannotCastException(in.getClass().getName(), "short", e);
+    }
+    throw cannotCastException(in.getClass().getName(), "short");
+  }
+
+  private static long castToLong(final Object in) throws SQLException {
+    try {
+      if (in instanceof String) {
+        return Long.parseLong((String) in);
+      }
+      if (in instanceof Number) {
+        return ((Number) in).longValue();
+      }
+      if (in instanceof java.util.Date) {
+        return ((java.util.Date) in).getTime();
+      }
+      if (in instanceof Boolean) {
+        return (Boolean) in ? 1L : 0L;
+      }
+      if (in instanceof Clob) {
+        return Long.parseLong(asString((Clob) in));
+      }
+      if (in instanceof Character) {
+        return Long.parseLong(in.toString());
+      }
+    } catch (final Exception e) {
+      throw cannotCastException(in.getClass().getName(), "long", e);
+    }
+    throw cannotCastException(in.getClass().getName(), "long");
+  }
+
+  private static float castToFloat(final Object in) throws SQLException {
+    try {
+      if (in instanceof String) {
+        return Float.parseFloat((String) in);
+      }
+      if (in instanceof Number) {
+        return ((Number) in).floatValue();
+      }
+      if (in instanceof java.util.Date) {
+        return ((java.util.Date) in).getTime();
+      }
+      if (in instanceof Boolean) {
+        return (Boolean) in ? 1f : 0f;
+      }
+      if (in instanceof Clob) {
+        return Float.parseFloat(asString((Clob) in));
+      }
+      if (in instanceof Character) {
+        return Float.parseFloat(in.toString());
+      }
+    } catch (final Exception e) {
+      throw cannotCastException(in.getClass().getName(), "float", e);
+    }
+    throw cannotCastException(in.getClass().getName(), "float");
+  }
+
+  private static double castToDouble(final Object in) throws SQLException {
+    try {
+      if (in instanceof String) {
+        return Double.parseDouble((String) in);
+      }
+      if (in instanceof Number) {
+        return ((Number) in).doubleValue();
+      }
+      if (in instanceof java.util.Date) {
+        return ((java.util.Date) in).getTime();
+      }
+      if (in instanceof Boolean) {
+        return (Boolean) in ? 1d : 0d;
+      }
+      if (in instanceof Clob) {
+        return Double.parseDouble(asString((Clob) in));
+      }
+      if (in instanceof Character) {
+        return Double.parseDouble(in.toString());
+      }
+    } catch (final Exception e) {
+      throw cannotCastException(in.getClass().getName(), "double", e);
+    }
+    throw cannotCastException(in.getClass().getName(), "double");
+  }
+
+  private static BigDecimal castToBigDecimal(final Object in, final int scale) throws SQLException {
+    try {
+      BigDecimal rc = null;
+      if (in instanceof String) {
+        rc = new BigDecimal((String) in);
+      } else if (in instanceof BigDecimal) {
+        rc = ((BigDecimal) in);
+      } else if (in instanceof BigInteger) {
+        rc = new BigDecimal((BigInteger) in);
+      } else if (in instanceof Long || in instanceof Integer || in instanceof Short
+          || in instanceof Byte) {
+        rc = BigDecimal.valueOf(((Number) in).longValue());
+      } else if (in instanceof Double || in instanceof Float) {
+        rc = BigDecimal.valueOf(((Number) in).doubleValue());
+      } else if (in instanceof java.util.Date) {
+        rc = BigDecimal.valueOf(((java.util.Date) in).getTime());
+      } else if (in instanceof Boolean) {
+        rc = (Boolean) in ? BigDecimal.ONE : BigDecimal.ZERO;
+      } else if (in instanceof Clob) {
+        rc = new BigDecimal(asString((Clob) in));
+      } else if (in instanceof Character) {
+        rc = new BigDecimal(new char[]{(Character) in});
+      }
+      if (rc != null) {
+        if (scale >= 0) {
+          rc = rc.setScale(scale, RoundingMode.HALF_UP);
+        }
+        return rc;
+      }
+    } catch (final Exception e) {
+      throw cannotCastException(in.getClass().getName(), "BigDecimal", e);
+    }
+    throw cannotCastException(in.getClass().getName(), "BigDecimal");
+  }
+
+  private static String castToString(final Object in) throws SQLException {
+    try {
+      if (in instanceof String) {
+        return (String) in;
+      }
+      if (in instanceof Clob) {
+        return asString((Clob) in);
+      }
+      // convert any unknown objects to string.
+      return in.toString();
+
+    } catch (final Exception e) {
+      throw cannotCastException(in.getClass().getName(), "String", e);
+    }
+  }
+
+  private static PSQLException cannotCastException(final String fromType, final String toType) {
+    return cannotCastException(fromType, toType, null);
+  }
+
+  private static PSQLException cannotCastException(final String fromType, final String toType,
+      final @Nullable Exception cause) {
+    return new PSQLException(
+        GT.tr("Cannot convert an instance of {0} to type {1}", fromType, toType),
+        PSQLState.INVALID_PARAMETER_TYPE, cause);
   }
 
   public void setObject(@Positive int parameterIndex, @Nullable Object x,
@@ -1162,15 +1158,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
         setObjectArray(parameterIndex, x);
       } catch (Exception e) {
         throw new PSQLException(
-            GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types"
-                + ".ARRAY"),
+            GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types.ARRAY"),
             PSQLState.INVALID_PARAMETER_TYPE, e);
       }
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
-          "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an "
-              + "explicit Types value to specify the type to use.",
+          "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.",
           x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
     }
   }
@@ -1194,8 +1188,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
    * the source of the string is known safe (i.e. {@code Integer.toString()})
    *
    * @param paramIndex parameter index
-   * @param s          value (the value should already be escaped)
-   * @param oid        type oid
+   * @param s value (the value should already be escaped)
+   * @param oid type oid
    * @throws SQLException if something goes wrong
    */
   protected void bindLiteral(@Positive int paramIndex,
@@ -1213,8 +1207,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPr
    * bindString with no escaping; the per-protocol ParameterList does escaping as needed.
    *
    * @param paramIndex parameter index
-   * @param s          value
-   * @param oid        type oid
+   * @param s value
+   * @param oid type oid
    * @throws SQLException if something goes wrong
    */
   private void bindString(@Positive int paramIndex, String s, int oid) throws SQLException {

@@ -75,7 +75,8 @@ public class BatchedQuery extends SimpleQuery {
   }
 
   /**
-   * Method to return the sql based on number of batches. Skipping the initial batch.
+   * Method to return the sql based on number of batches. Skipping the initial
+   * batch.
    */
   @Override
   public String getNativeSql() {

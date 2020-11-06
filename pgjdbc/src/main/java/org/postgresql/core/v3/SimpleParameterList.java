@@ -49,6 +49,19 @@ class SimpleParameterList implements V3ParameterList {
   private static final byte BINARY = 4;
 
   private static final ParameterContext NO_PARAMETER_CONTEXT = new ParameterContext();
+  /**
+   * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
+   * to null".
+   */
+  private static final Object NULL_OBJECT = new Object();
+  private final @Nullable Map<String, Integer> paramNameIndex;
+  private final @Nullable List<String> paramNames;
+  private final @Nullable Object[] paramValues;
+  private final int[] paramTypes;
+  private final byte[] flags;
+  private final byte[] @Nullable [] encoded;
+  private final @Nullable TypeTransferModeRegistry transferModeRegistry;
+  private int pos = 0;
 
   SimpleParameterList(int paramCount,
       @Nullable TypeTransferModeRegistry transferModeRegistry) {
@@ -205,29 +218,21 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
-  public String toString(@Positive int parameterIndex, boolean standardConformingStrings) {
-    final Object paramValue;
-    final byte flag;
-    final int paramType;
-    {
-      --parameterIndex;
-      paramValue = paramValues[parameterIndex];
-      flag = flags[parameterIndex];
-      paramType = paramTypes[parameterIndex];
-    }
-
+  public String toString(@Positive int index, boolean standardConformingStrings) {
+    --index;
+    Object paramValue = paramValues[index];
     if (paramValue == null) {
       if (paramNames == null) {
         return "?";
       } else {
-        return ":" + paramNames.get(parameterIndex);
+        return ":" + paramNames.get(index);
       }
     } else if (paramValue == NULL_OBJECT) {
       return "NULL";
-    } else if ((flag & BINARY) == BINARY) {
+    } else if ((flags[index] & BINARY) == BINARY) {
       // handle some of the numeric types
 
-      switch (paramType) {
+      switch (paramTypes[index]) {
         case Oid.INT2:
           short s = ByteConverter.int2((byte[]) paramValue, 0);
           return Short.toString(s);
@@ -292,6 +297,7 @@ class SimpleParameterList implements V3ParameterList {
         p.append(param);
       }
       p.append('\'');
+      int paramType = paramTypes[index];
       if (paramType == Oid.TIMESTAMP) {
         p.append("::timestamp");
       } else if (paramType == Oid.TIMESTAMPTZ) {
@@ -532,16 +538,16 @@ class SimpleParameterList implements V3ParameterList {
 
   @Override
   public void appendAll(ParameterList list) throws SQLException {
-    if (list instanceof org.postgresql.core.v3.SimpleParameterList) {
+    if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
       /* only v3.SimpleParameterList is compatible with this type
       we need to create copies of our parameters, otherwise the values can be changed */
       SimpleParameterList spl = (SimpleParameterList) list;
       int inParamCount = spl.getInParameterCount();
       if ((pos + inParamCount) > paramValues.length) {
         throw new PSQLException(
-            GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
-                (pos + inParamCount), paramValues.length),
-            PSQLState.INVALID_PARAMETER_VALUE);
+          GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
+              (pos + inParamCount), paramValues.length),
+              PSQLState.INVALID_PARAMETER_VALUE);
       }
       System.arraycopy(spl.getValues(), 0, this.paramValues, pos, inParamCount);
       System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, pos, inParamCount);
@@ -553,7 +559,6 @@ class SimpleParameterList implements V3ParameterList {
 
   /**
    * Useful implementation of toString.
-   *
    * @return String representation of the list values
    */
   @Override
@@ -568,20 +573,4 @@ class SimpleParameterList implements V3ParameterList {
     ts.append("]>");
     return ts.toString();
   }
-
-  private final @Nullable Map<String, Integer> paramNameIndex;
-  private final @Nullable List<String> paramNames;
-  private final @Nullable Object[] paramValues;
-  private final int[] paramTypes;
-  private final byte[] flags;
-  private final byte[] @Nullable [] encoded;
-  private final @Nullable TypeTransferModeRegistry transferModeRegistry;
-
-  /**
-   * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
-   * to null".
-   */
-  private static final Object NULL_OBJECT = new Object();
-
-  private int pos = 0;
 }

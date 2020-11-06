@@ -23,6 +23,7 @@ import java.util.List;
  * Test cases to make sure the parameterlist implementation works as expected.
  *
  * @author Jeremy Whiting jwhiting@redhat.com
+ *
  */
 public class V3ParameterListTests {
   private TypeTransferModeRegistry transferModeRegistry;
@@ -30,15 +31,15 @@ public class V3ParameterListTests {
   @Before
   public void setUp() throws Exception {
     transferModeRegistry = new TypeTransferModeRegistry() {
-      @Override
-      public boolean useBinaryForSend(int oid) {
-        return false;
-      }
+        @Override
+        public boolean useBinaryForSend(int oid) {
+            return false;
+        }
 
-      @Override
-      public boolean useBinaryForReceive(int oid) {
-        return false;
-      }
+        @Override
+        public boolean useBinaryForReceive(int oid) {
+            return false;
+        }
     };
   }
 
@@ -90,9 +91,11 @@ public class V3ParameterListTests {
   }
 
   /**
-   * Test to check the merging of two collections of parameters. All elements are kept.
+   * Test to check the merging of two collections of parameters. All elements
+   * are kept.
    *
-   * @throws SQLException raised exception if setting parameter fails.
+   * @throws SQLException
+   *           raised exception if setting parameter fails.
    */
   @Test
   public void testMergeOfParameterLists() throws SQLException {
