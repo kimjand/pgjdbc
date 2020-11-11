@@ -21,6 +21,11 @@ import java.util.List;
  * the SQL text.
  */
 public class ParameterContext {
+
+  enum BindStyle {
+    POSITIONAL, NAMED
+  }
+
   public static final ParameterContext EMPTY_CONTEXT = new ParameterContext();
   private static final List<Integer> NO_PLACEHOLDERS = Collections.emptyList();
 
@@ -38,6 +43,7 @@ public class ParameterContext {
    * Once a positional parameter have been added all subsequent parameters must be positional.
    * Positional parameters cannot be reused, and their order of appearance will correspond to the
    * parameters sent to the PostgreSQL backend.
+   *
    * @param position in the SQL text where the parser captured the placeholder.
    * @return 1-indexed position in the order of appearance of positional parameters
    * @throws SQLException if positional and named parameters are mixed.
@@ -48,7 +54,7 @@ public class ParameterContext {
           + " parameter first.");
     }
 
-    if (bindStyle == null) {
+    if (bindStyle == null && this != EMPTY_CONTEXT) {
       bindStyle = BindStyle.POSITIONAL;
     }
 
@@ -122,6 +128,7 @@ public class ParameterContext {
    * Using named parameters enable reuse of the same parameters in several locations of the SQL
    * text. The parameters only have to be sent to the PostgreSQL backend once per name specified.
    * The values will be sent in the order of the first appearance of their placeholder.
+   *
    * @param position in the SQL text where the parser captured the placeholder.
    * @param bindName is the placeholder name captured by the parser.
    * @return 1-indexed position in the order of first appearance of named parameters
@@ -133,7 +140,7 @@ public class ParameterContext {
           + "positional parameter first.");
     }
 
-    if (bindStyle == null) {
+    if (bindStyle == null && this != EMPTY_CONTEXT) {
       bindStyle = BindStyle.NAMED;
     }
 
@@ -181,9 +188,5 @@ public class ParameterContext {
       return NO_PLACEHOLDERS;
     }
     return placeholderPositions;
-  }
-
-  enum BindStyle {
-    POSITIONAL, NAMED
   }
 }

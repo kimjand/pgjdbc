@@ -6,6 +6,7 @@
 package org.postgresql.core.v3;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
@@ -26,13 +27,13 @@ import java.util.List;
  *
  */
 public class V3ParameterListTests {
-  private TypeTransferModeRegistry transferModeRegistry;
 
-  private static class TestParameterContext extends ParameterContext  {
+  private static class TestParameterContext extends ParameterContext {
     static ParameterContext buildNamed(List<Integer> placeholderPositions,
         List<String> placeholderNames) throws SQLException {
       if (placeholderPositions.size() != placeholderNames.size()) {
-        throw new IllegalArgumentException("Length of placerholderPositions and placerholderNames differ");
+        throw new IllegalArgumentException("Length of placerholderPositions and placerholderNames" +
+            " differ");
       }
       final ParameterContext ctx = new ParameterContext();
       for (int i = 0; i < placeholderPositions.size(); i++) {
@@ -42,6 +43,8 @@ public class V3ParameterListTests {
       return ctx;
     }
   }
+
+  private TypeTransferModeRegistry transferModeRegistry;
 
   @Before
   public void setUp() throws Exception {
@@ -103,6 +106,14 @@ public class V3ParameterListTests {
             .replace(":c", "'p3'"),
         nativeQuery.toString(parameters)
     );
+  }
+
+  @Test
+  public void dontModifyEMPTY_CONTEXT() throws SQLException {
+    assertThrows(UnsupportedOperationException.class,
+        () -> ParameterContext.EMPTY_CONTEXT.addPositionalParameter(0));
+    assertThrows(UnsupportedOperationException.class,
+        () -> ParameterContext.EMPTY_CONTEXT.addNamedParameter(0, "dummy"));
   }
 
   /**
