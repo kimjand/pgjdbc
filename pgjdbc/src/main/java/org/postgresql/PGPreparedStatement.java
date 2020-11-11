@@ -13,6 +13,7 @@ import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
 import java.sql.NClob;
+import java.sql.PreparedStatement;
 import java.sql.Ref;
 import java.sql.RowId;
 import java.sql.SQLException;
@@ -24,7 +25,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
 
-public interface PGPreparedStatement extends PGStatement {
+public interface PGPreparedStatement extends PGStatement, PreparedStatement {
   /**
    * @param parameterName the name of the parameter to be bound
    * @param sqlType       the SQL type code defined in <code>java.sql.Types</code>

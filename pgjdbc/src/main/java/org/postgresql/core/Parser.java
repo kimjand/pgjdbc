@@ -150,7 +150,7 @@ public class Parser {
                 }
 
                 if (!isValuesFound || !isCurrentReWriteCompatible || valuesBraceClosePosition == -1
-                    || (paramCtx.hasParameters() && valuesBraceClosePosition < paramCtx.getLatestPlaceholderPosition())) {
+                    || (paramCtx.hasParameters() && valuesBraceClosePosition < paramCtx.getLastPlaceholderPosition())) {
                   valuesBraceOpenPosition = -1;
                   valuesBraceClosePosition = -1;
                 }
@@ -276,7 +276,7 @@ public class Parser {
     }
 
     if (!isValuesFound || !isCurrentReWriteCompatible || valuesBraceClosePosition == -1
-        || (paramCtx.hasParameters() && valuesBraceClosePosition < paramCtx.getLatestPlaceholderPosition())) {
+        || (paramCtx.hasParameters() && valuesBraceClosePosition < paramCtx.getLastPlaceholderPosition())) {
       valuesBraceOpenPosition = -1;
       valuesBraceClosePosition = -1;
     }

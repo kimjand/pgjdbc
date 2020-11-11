@@ -48,7 +48,8 @@ class SimpleParameterList implements V3ParameterList {
   private static final byte TEXT = 0;
   private static final byte BINARY = 4;
 
-  private static final ParameterContext NO_PARAMETER_CONTEXT = new ParameterContext();
+  private static final ParameterContext NO_PARAMETER_CONTEXT = ParameterContext.EMPTY_CONTEXT;
+
   /**
    * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
    * to null".

@@ -28,6 +28,21 @@ import java.util.List;
 public class V3ParameterListTests {
   private TypeTransferModeRegistry transferModeRegistry;
 
+  private static class TestParameterContext extends ParameterContext  {
+    static ParameterContext buildNamed(List<Integer> placeholderPositions,
+        List<String> placeholderNames) throws SQLException {
+      if (placeholderPositions.size() != placeholderNames.size()) {
+        throw new IllegalArgumentException("Length of placerholderPositions and placerholderNames differ");
+      }
+      final ParameterContext ctx = new ParameterContext();
+      for (int i = 0; i < placeholderPositions.size(); i++) {
+        ctx.addNamedParameter(placeholderPositions.get(i), placeholderNames.get(i));
+      }
+
+      return ctx;
+    }
+  }
+
   @Before
   public void setUp() throws Exception {
     transferModeRegistry = new TypeTransferModeRegistry() {
@@ -57,7 +72,7 @@ public class V3ParameterListTests {
 
     SimpleParameterList parameters = new SimpleParameterList(3,
         transferModeRegistry,
-        ParameterContext.buildNamed(
+        TestParameterContext.buildNamed(
             Arrays.asList(-1, -1, -1),
             Arrays.asList("a", "b", "c")
         )
@@ -71,7 +86,7 @@ public class V3ParameterListTests {
 
     parameters = new SimpleParameterList(3,
         transferModeRegistry,
-        ParameterContext.buildNamed(
+        TestParameterContext.buildNamed(
             Arrays.asList(-1, -1, -1),
             Arrays.asList("ASTR", "bStr", "c")
         )

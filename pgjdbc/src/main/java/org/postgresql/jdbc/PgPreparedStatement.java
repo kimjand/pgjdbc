@@ -56,7 +56,6 @@ import java.sql.Clob;
 import java.sql.Date;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -75,7 +74,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 
-class PgPreparedStatement extends PgStatement implements PreparedStatement, PGPreparedStatement {
+class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
 
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.

@@ -5,6 +5,7 @@
 
 package org.postgresql.benchmark.statement;
 
+import org.postgresql.PGPreparedStatement;
 import org.postgresql.util.ConnectionUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -47,12 +48,12 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class ParseStatement {
-  @Param({"0", "1", "10", "20"})
-  private int bindCount;
-
   @Param({"false"})
   public boolean unique;
-
+  @Param({"false", "true"})
+  public boolean named;
+  @Param({"0", "1", "10", "20", "100", "1000"})
+  private int bindCount;
   private Connection connection;
 
   @Param({"conservative"})
@@ -61,6 +62,16 @@ public class ParseStatement {
   private String sql;
 
   private int cntr;
+
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+        .include(ParseStatement.class.getSimpleName())
+        .addProfiler(GCProfiler.class)
+        .detectJvmArgs()
+        .build();
+
+    new Runner(opt).run();
+  }
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
@@ -81,7 +92,11 @@ public class ParseStatement {
       if (i > 0) {
         sb.append(',');
       }
-      sb.append('?');
+      if (named) {
+        sb.append(":p_").append(i);
+      } else {
+        sb.append('?');
+      }
     }
     sql = sb.toString();
   }
@@ -97,9 +112,13 @@ public class ParseStatement {
     if (unique) {
       sql += " -- " + cntr++;
     }
-    PreparedStatement ps = connection.prepareStatement(sql);
+    PGPreparedStatement ps = connection.prepareStatement(sql).unwrap(PGPreparedStatement.class);
     for (int i = 1; i <= bindCount; i++) {
-      ps.setInt(i, i);
+      if (named) {
+        ps.setInt("p_" + (i - 1), i);
+      } else {
+        ps.setInt(i, i);
+      }
     }
     ResultSet rs = ps.executeQuery();
     while (rs.next()) {
@@ -110,15 +129,5 @@ public class ParseStatement {
     rs.close();
     ps.close();
     return ps;
-  }
-
-  public static void main(String[] args) throws RunnerException {
-    Options opt = new OptionsBuilder()
-        .include(ParseStatement.class.getSimpleName())
-        .addProfiler(GCProfiler.class)
-        .detectJvmArgs()
-        .build();
-
-    new Runner(opt).run();
   }
 }
