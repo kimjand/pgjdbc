@@ -62,16 +62,6 @@ public class ParseStatement {
 
   private int cntr;
 
-  public static void main(String[] args) throws RunnerException {
-    Options opt = new OptionsBuilder()
-        .include(ParseStatement.class.getSimpleName())
-        .addProfiler(GCProfiler.class)
-        .detectJvmArgs()
-        .build();
-
-    new Runner(opt).run();
-  }
-
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
     Properties props = ConnectionUtil.getProperties();
@@ -128,5 +118,15 @@ public class ParseStatement {
     rs.close();
     ps.close();
     return ps;
+  }
+
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+        .include(ParseStatement.class.getSimpleName())
+        .addProfiler(GCProfiler.class)
+        .detectJvmArgs()
+        .build();
+
+    new Runner(opt).run();
   }
 }
