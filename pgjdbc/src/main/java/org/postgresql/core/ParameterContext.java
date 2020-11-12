@@ -25,6 +25,10 @@ public class ParameterContext {
     POSITIONAL, NAMED
   }
 
+  /**
+   * EMPTY_CONTEXT is immutable. Calling the add-methods will result in
+   * UnsupportedOperationException begin thrown.
+   */
   public static final ParameterContext EMPTY_CONTEXT = new ParameterContext() {
     @Override
     public int addPositionalParameter(int position) throws SQLException {
@@ -36,8 +40,6 @@ public class ParameterContext {
       throw new UnsupportedOperationException();
     }
   };
-
-  private static final List<Integer> NO_PLACEHOLDERS = Collections.emptyList();
 
   private @Nullable BindStyle bindStyle = null;
   private @Nullable List<Integer> placeholderPositions = null;
@@ -175,7 +177,7 @@ public class ParameterContext {
 
   public List<Integer> getPlaceholderPositions() {
     if (placeholderPositions == null) {
-      return NO_PLACEHOLDERS;
+      return Collections.emptyList();
     }
     return placeholderPositions;
   }
