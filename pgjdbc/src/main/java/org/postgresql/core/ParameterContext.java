@@ -13,12 +13,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * org.postgresql.core.Parser stores information about placeholder occurrences in ParameterContext.
- * In case of standard JDBC placeholders ('?') the position in the SQL text is recorded.
- * For named placeholders (':paramName') the name is recorded as well as the position.
- * PgPreparedStatement can then use the name to lookup the parameter corresponding index.
- * These values are also used by toString() methods to provide a human readable representation of
- * the SQL text.
+ * {@link org.postgresql.core.Parser} stores information about placeholder occurrences in ParameterContext.
+ * In case of standard JDBC placeholders {@code '?'} the position in the SQL text is recorded. For named
+ * placeholders {@code ":paramName"} the name is recorded as well as the position. {@code PgPreparedStatement} can
+ * then use the name to lookup the parameter corresponding index. These values are also used by
+ * toString() methods to provide a human readable representation of the SQL text.
  */
 public class ParameterContext {
 
@@ -26,12 +25,19 @@ public class ParameterContext {
     POSITIONAL, NAMED
   }
 
-  public static final ParameterContext EMPTY_CONTEXT = new ParameterContext();
-  private static final List<Integer> NO_PLACEHOLDERS = Collections.emptyList();
+  public static final ParameterContext EMPTY_CONTEXT = new ParameterContext() {
+    @Override
+    public int addPositionalParameter(int position) throws SQLException {
+      throw new UnsupportedOperationException();
+    }
 
-  static {
-    EMPTY_CONTEXT.placeholderPositions = NO_PLACEHOLDERS;
-  }
+    @Override
+    public int addNamedParameter(int position, String bindName) throws SQLException {
+      throw new UnsupportedOperationException();
+    }
+  };
+
+  private static final List<Integer> NO_PLACEHOLDERS = Collections.emptyList();
 
   private @Nullable BindStyle bindStyle = null;
   private @Nullable List<Integer> placeholderPositions = null;
@@ -39,24 +45,16 @@ public class ParameterContext {
   private @Nullable List<Integer> placeholderAtPosition = null;
 
   /**
-   * Adds a positional parameter to this ParameterContext.
-   * Once a positional parameter have been added all subsequent parameters must be positional.
-   * Positional parameters cannot be reused, and their order of appearance will correspond to the
-   * parameters sent to the PostgreSQL backend.
+   * Adds a positional parameter to this ParameterContext. Once a positional parameter have been
+   * added all subsequent parameters must be positional. Positional parameters cannot be reused, and
+   * their order of appearance will correspond to the parameters sent to the PostgreSQL backend.
    *
    * @param position in the SQL text where the parser captured the placeholder.
    * @return 1-indexed position in the order of appearance of positional parameters
    * @throws SQLException if positional and named parameters are mixed.
    */
   public int addPositionalParameter(int position) throws SQLException {
-    if (bindStyle == BindStyle.NAMED) {
-      throw new SQLException("Positional and named parameters cannot be combined! Saw named"
-          + " parameter first.");
-    }
-
-    if (bindStyle == null && this != EMPTY_CONTEXT) {
-      bindStyle = BindStyle.POSITIONAL;
-    }
+    checkAndSetBindStyle(BindStyle.POSITIONAL);
 
     if (placeholderPositions == null) {
       placeholderPositions = new ArrayList<>();
@@ -123,11 +121,11 @@ public class ParameterContext {
   }
 
   /**
-   * Adds a named parameter to this ParameterContext.
-   * Once a named Parameter have been added all subsequent parameters must be named.
-   * Using named parameters enable reuse of the same parameters in several locations of the SQL
-   * text. The parameters only have to be sent to the PostgreSQL backend once per name specified.
-   * The values will be sent in the order of the first appearance of their placeholder.
+   * Adds a named parameter to this ParameterContext. Once a named Parameter have been added all
+   * subsequent parameters must be named. Using named parameters enable reuse of the same parameters
+   * in several locations of the SQL text. The parameters only have to be sent to the PostgreSQL
+   * backend once per name specified. The values will be sent in the order of the first appearance
+   * of their placeholder.
    *
    * @param position in the SQL text where the parser captured the placeholder.
    * @param bindName is the placeholder name captured by the parser.
@@ -135,14 +133,7 @@ public class ParameterContext {
    * @throws SQLException if positional and named parameters are mixed.
    */
   public int addNamedParameter(int position, String bindName) throws SQLException {
-    if (bindStyle == BindStyle.POSITIONAL) {
-      throw new SQLException("Positional and named parameters cannot be combined! Saw "
-          + "positional parameter first.");
-    }
-
-    if (bindStyle == null && this != EMPTY_CONTEXT) {
-      bindStyle = BindStyle.NAMED;
-    }
+    checkAndSetBindStyle(BindStyle.NAMED);
 
     if (placeholderPositions == null) {
       placeholderPositions = new ArrayList<>();
@@ -179,7 +170,6 @@ public class ParameterContext {
     if (placeholderNames != null) {
       return placeholderNames.size();
     }
-
     return placeholderCount();
   }
 
@@ -188,5 +178,14 @@ public class ParameterContext {
       return NO_PLACEHOLDERS;
     }
     return placeholderPositions;
+  }
+
+  private void checkAndSetBindStyle(BindStyle bindStyle) throws SQLException {
+    if (this.bindStyle == null) {
+      this.bindStyle = bindStyle;
+    } else if (this.bindStyle != bindStyle) {
+      throw new SQLException("Multiple bind styles cannot be combined. Saw " + this.bindStyle
+          + " first but attempting to also use: " + bindStyle);
+    }
   }
 }

@@ -31,8 +31,8 @@ public class NamedParametersTest extends BaseTest4 {
       fail("Should throw a SQLException");
     } catch (SQLException ex) {
       // ignore
-      assertEquals("Positional and named parameters cannot be combined! Saw "
-          + "positional parameter first.", ex.getMessage());
+      assertEquals("Multiple bind styles cannot be combined. Saw POSITIONAL first but attempting to also use: NAMED",
+          ex.getMessage());
     }
 
     try {
@@ -40,8 +40,8 @@ public class NamedParametersTest extends BaseTest4 {
       fail("Should throw a SQLException");
     } catch (SQLException ex) {
       // ignore
-      assertEquals("Positional and named parameters cannot be combined! Saw "
-          + "named parameter first.", ex.getMessage());
+      assertEquals("Multiple bind styles cannot be combined. Saw NAMED first but attempting to also use: POSITIONAL",
+          ex.getMessage());
     }
   }
 
