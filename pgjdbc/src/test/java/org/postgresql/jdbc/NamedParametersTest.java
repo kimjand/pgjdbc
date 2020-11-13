@@ -129,9 +129,9 @@ public class NamedParametersTest extends BaseTest4 {
       } catch (SQLException ex) {
         assertEquals(String.format("The parameterName was not found : %s. The following names "
                 + "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{
-                "ASTR",
-                "bStr",
-                "c"})),
+                  "ASTR",
+                  "bStr",
+                  "c"})),
             ex.getMessage());
       }
       ps.setString("bStr", "1");

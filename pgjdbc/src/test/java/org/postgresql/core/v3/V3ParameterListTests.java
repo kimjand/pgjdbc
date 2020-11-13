@@ -49,16 +49,45 @@ public class V3ParameterListTests {
   @Before
   public void setUp() throws Exception {
     transferModeRegistry = new TypeTransferModeRegistry() {
-        @Override
-        public boolean useBinaryForSend(int oid) {
-            return false;
-        }
+      @Override
+      public boolean useBinaryForSend(int oid) {
+        return false;
+      }
 
-        @Override
-        public boolean useBinaryForReceive(int oid) {
-            return false;
-        }
+      @Override
+      public boolean useBinaryForReceive(int oid) {
+        return false;
+      }
     };
+  }
+
+  @Test
+  public void bogusPositions() throws SQLException {
+    assertThrows(IllegalArgumentException.class,
+        () -> {
+          final ParameterContext parameterContext = new ParameterContext();
+          parameterContext.addPositionalParameter(0);
+          parameterContext.addPositionalParameter(0);
+        });
+    assertThrows(IllegalArgumentException.class,
+        () -> {
+          final ParameterContext parameterContext = new ParameterContext();
+          parameterContext.addPositionalParameter(1);
+          parameterContext.addPositionalParameter(0);
+        });
+
+    assertThrows(IllegalArgumentException.class,
+        () -> {
+          final ParameterContext parameterContext = new ParameterContext();
+          parameterContext.addNamedParameter(0, "dummy");
+          parameterContext.addNamedParameter(0, "dummy2");
+        });
+    assertThrows(IllegalArgumentException.class,
+        () -> {
+          final ParameterContext parameterContext = new ParameterContext();
+          parameterContext.addNamedParameter(1, "dummy");
+          parameterContext.addNamedParameter(0, "dummy2");
+        });
   }
 
   @Test
@@ -76,7 +105,7 @@ public class V3ParameterListTests {
     SimpleParameterList parameters = new SimpleParameterList(3,
         transferModeRegistry,
         TestParameterContext.buildNamed(
-            Arrays.asList(-1, -1, -1),
+            Arrays.asList(0, 1, 2),
             Arrays.asList("a", "b", "c")
         )
     );
@@ -90,7 +119,7 @@ public class V3ParameterListTests {
     parameters = new SimpleParameterList(3,
         transferModeRegistry,
         TestParameterContext.buildNamed(
-            Arrays.asList(-1, -1, -1),
+            Arrays.asList(0, 1, 2),
             Arrays.asList("ASTR", "bStr", "c")
         )
     );

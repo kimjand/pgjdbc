@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
@@ -56,15 +57,9 @@ public class ParameterContext {
    * @return 1-indexed position in the order of appearance of positional parameters
    * @throws SQLException if positional and named parameters are mixed.
    */
-  public int addPositionalParameter(int position) throws SQLException {
+  public int addPositionalParameter(@NonNegative int position) throws SQLException {
     checkAndSetBindStyle(BindStyle.POSITIONAL);
-
-    if (placeholderPositions == null) {
-      placeholderPositions = new ArrayList<>();
-    }
-
-    placeholderPositions.add(position);
-    int bindIndex = placeholderPositions.size() - 1;
+    int bindIndex = checkAndAddPosition(position);
 
     if (placeholderAtPosition == null) {
       placeholderAtPosition = new ArrayList<>();
@@ -87,7 +82,7 @@ public class ParameterContext {
    * @param i 0-indexed position in the order of first appearance
    * @return The name of the placeholder at this backend parameter position
    */
-  public String getPlaceholderName(int i) {
+  public String getPlaceholderName(@NonNegative int i) {
     if (placeholderNames == null) {
       throw new IllegalStateException("Call hasNamedParameters() first.");
     }
@@ -98,7 +93,7 @@ public class ParameterContext {
    * @param i 0-indexed position in the order of appearance
    * @return The position of the placeholder in the SQL text for this placeholder index
    */
-  public int getPlaceholderPosition(int i) {
+  public int getPlaceholderPosition(@NonNegative int i) {
     if (placeholderPositions == null) {
       throw new IllegalStateException("Call hasParameters() first.");
     }
@@ -109,15 +104,15 @@ public class ParameterContext {
    * @param i 0-indexed position in the order of appearance
    * @return The position of the placeholder in the order of first appearance of each placeholder
    */
-  public int getPlaceholderAtPosition(int i) {
-    if (placeholderAtPosition == null) {
+  public int getPlaceholderAtPosition(@NonNegative int i) {
+    if (placeholderAtPosition == null || placeholderAtPosition.isEmpty()) {
       throw new IllegalStateException("Call hasParameters() first.");
     }
     return placeholderAtPosition.get(i);
   }
 
   public int getLastPlaceholderPosition() {
-    if (placeholderPositions == null) {
+    if (placeholderPositions == null || placeholderPositions.isEmpty()) {
       throw new IllegalStateException("Call hasParameters() first.");
     }
     return placeholderPositions.get(placeholderPositions.size() - 1);
@@ -135,13 +130,9 @@ public class ParameterContext {
    * @return 1-indexed position in the order of first appearance of named parameters
    * @throws SQLException if positional and named parameters are mixed.
    */
-  public int addNamedParameter(int position, String bindName) throws SQLException {
+  public int addNamedParameter(@NonNegative int position, String bindName) throws SQLException {
     checkAndSetBindStyle(BindStyle.NAMED);
-
-    if (placeholderPositions == null) {
-      placeholderPositions = new ArrayList<>();
-    }
-    placeholderPositions.add(position);
+    checkAndAddPosition(position);
 
     if (placeholderNames == null) {
       placeholderNames = new ArrayList<>();
@@ -194,5 +185,17 @@ public class ParameterContext {
       throw new SQLException("Multiple bind styles cannot be combined. Saw " + this.bindStyle
           + " first but attempting to also use: " + bindStyle);
     }
+  }
+
+  private int checkAndAddPosition(@NonNegative int position) throws SQLException {
+    if (placeholderPositions == null) {
+      placeholderPositions = new ArrayList<>();
+    } else if (hasParameters() && position <= getLastPlaceholderPosition()) {
+      throw new IllegalArgumentException("Parameters must be processed in increasing order."
+          + "position = " + position + ", LastPlaceholderPosition = "
+          + getLastPlaceholderPosition());
+    }
+    placeholderPositions.add(position);
+    return placeholderPositions.size() - 1;
   }
 }
