@@ -190,12 +190,13 @@ public class ParameterContext {
   private int checkAndAddPosition(@NonNegative int position) throws SQLException {
     if (placeholderPositions == null) {
       placeholderPositions = new ArrayList<>();
-    } else if (hasParameters() && position <= getLastPlaceholderPosition()) {
+    }
+    placeholderPositions.add(position);
+    if (hasParameters() && position <= getLastPlaceholderPosition()) {
       throw new IllegalArgumentException("Parameters must be processed in increasing order."
           + "position = " + position + ", LastPlaceholderPosition = "
           + getLastPlaceholderPosition());
     }
-    placeholderPositions.add(position);
     return placeholderPositions.size() - 1;
   }
 }
