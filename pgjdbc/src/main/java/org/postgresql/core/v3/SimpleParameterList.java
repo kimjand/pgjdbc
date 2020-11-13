@@ -505,7 +505,7 @@ class SimpleParameterList implements V3ParameterList {
     if (index == null) {
       throw new PSQLException(
           GT.tr("The parameterName was not found : {0}. The following names are known : \n\t {1}",
-              parameterName, this.paramNameIndex.keySet()), PSQLState.INVALID_PARAMETER_VALUE);
+              parameterName, this.paramNames), PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     return index;

@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGPreparedStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.jdbc2.BatchExecuteTest;
@@ -31,7 +32,9 @@ public class NamedParametersTest extends BaseTest4 {
       fail("Should throw a SQLException");
     } catch (SQLException ex) {
       // ignore
-      assertEquals("Multiple bind styles cannot be combined. Saw POSITIONAL first but attempting to also use: NAMED",
+      assertEquals(
+          "Multiple bind styles cannot be combined. Saw POSITIONAL first but attempting to also "
+              + "use: NAMED",
           ex.getMessage());
     }
 
@@ -40,7 +43,9 @@ public class NamedParametersTest extends BaseTest4 {
       fail("Should throw a SQLException");
     } catch (SQLException ex) {
       // ignore
-      assertEquals("Multiple bind styles cannot be combined. Saw NAMED first but attempting to also use: POSITIONAL",
+      assertEquals(
+          "Multiple bind styles cannot be combined. Saw NAMED first but attempting to also use: "
+              + "POSITIONAL",
           ex.getMessage());
     }
   }
@@ -54,8 +59,8 @@ public class NamedParametersTest extends BaseTest4 {
       {
         final String insertSQL = "INSERT INTO test_dates( d1, pk, d2, d3 ) values ( :date, :pk, "
             + ":date, :date )";
-        PgPreparedStatement insertStmt =
-            con.prepareStatement(insertSQL).unwrap(PgPreparedStatement.class);
+        PGPreparedStatement insertStmt =
+            con.prepareStatement(insertSQL).unwrap(PGPreparedStatement.class);
 
         insertStmt.setInt("pk", 1);
         insertStmt.setDate("date", sqlDate);
@@ -67,7 +72,7 @@ public class NamedParametersTest extends BaseTest4 {
         final String sql = "SELECT td.*, :date::DATE AS d4 FROM test_dates td WHERE td.d1 = :date"
             + " AND :date "
             + "BETWEEN td.d2 AND td.d3";
-        PgPreparedStatement pstmt = con.prepareStatement(sql).unwrap(PgPreparedStatement.class);
+        PGPreparedStatement pstmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class);
 
         pstmt.setDate("date", sqlDate);
         pstmt.execute();
@@ -89,8 +94,8 @@ public class NamedParametersTest extends BaseTest4 {
       {
         final String updateSQL = "update test_dates SET d1 = :date2, d3 = :date2 WHERE pk = :pk "
             + "AND d1 =:date RETURNING d1, :date AS d2, d3, d2 AS d4";
-        PgPreparedStatement updateStmt =
-            con.prepareStatement(updateSQL).unwrap(PgPreparedStatement.class);
+        PGPreparedStatement updateStmt =
+            con.prepareStatement(updateSQL).unwrap(PGPreparedStatement.class);
 
         updateStmt.setInt("pk", 1);
         updateStmt.setDate("date", sqlDate);
@@ -116,7 +121,7 @@ public class NamedParametersTest extends BaseTest4 {
     {
       PreparedStatement preparedStatement = con.prepareStatement("select :ASTR||:bStr||:c AS "
           + "teststr");
-      PgPreparedStatement ps = preparedStatement.unwrap(PgPreparedStatement.class);
+      PGPreparedStatement ps = preparedStatement.unwrap(PGPreparedStatement.class);
       final String failureParameterName = "BsTr";
       try {
         ps.setString(failureParameterName, "1");
@@ -124,9 +129,9 @@ public class NamedParametersTest extends BaseTest4 {
       } catch (SQLException ex) {
         assertEquals(String.format("The parameterName was not found : %s. The following names "
                 + "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{
-                  "ASTR",
-                  "bStr",
-                  "c"})),
+                "ASTR",
+                "bStr",
+                "c"})),
             ex.getMessage());
       }
       ps.setString("bStr", "1");
@@ -145,25 +150,24 @@ public class NamedParametersTest extends BaseTest4 {
   public void setStringReuse() throws Exception {
     {
       final String sql = "select :aa||:aa||:a AS teststr";
-      PreparedStatement preparedStatement = con.prepareStatement(sql);
-      PgPreparedStatement ps = preparedStatement.unwrap(PgPreparedStatement.class);
+      PGPreparedStatement ps = con.prepareStatement(sql).unwrap(PGPreparedStatement.class);
 
       // Test toString before bind
-      assertEquals(sql, preparedStatement.toString());
+      assertEquals(sql, ps.toString());
 
       ps.setString("a", "1");
       ps.setString("aa", "2");
 
       // Test toString after bind
-      assertEquals("select '2'||'2'||'1' AS teststr", preparedStatement.toString());
+      assertEquals("select '2'||'2'||'1' AS teststr", ps.toString());
 
-      preparedStatement.execute();
-      final ResultSet resultSet = preparedStatement.getResultSet();
+      ps.execute();
+      final ResultSet resultSet = ps.getResultSet();
       resultSet.next();
 
       final String testStr = resultSet.getString("testStr");
       Assert.assertEquals("221", testStr);
-      preparedStatement.close();
+      ps.close();
     }
   }
 
@@ -206,12 +210,12 @@ public class NamedParametersTest extends BaseTest4 {
     // not an error if it doesn't exist.
     TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER, col2 INTEGER");
 
-    PgPreparedStatement pstmt = null;
+    PGPreparedStatement pstmt = null;
     try {
 
       pstmt =
           con.prepareStatement("INSERT INTO testbatch VALUES (:int1,:int2,:int1)")
-              .unwrap(PgPreparedStatement.class);
+              .unwrap(PGPreparedStatement.class);
       pstmt.setInt("int1", 1);
       pstmt.setInt("int2", 2);
       pstmt.addBatch();
@@ -262,6 +266,22 @@ public class NamedParametersTest extends BaseTest4 {
       TestUtil.assertNumberOfRows(con, "testbatch", 11, "3+4+4 rows inserted");
 
     } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+
+    pstmt = null;
+    ResultSet rs = null;
+    try {
+      pstmt = con.prepareStatement(
+          "SELECT count(*) AS rows FROM testbatch WHERE pk = col2 AND pk <> col1")
+          .unwrap(PGPreparedStatement.class);
+      pstmt.execute();
+      rs = pstmt.getResultSet();
+      rs.next();
+      // There should be 11 rows with pk <> col1 AND pk = col2
+      Assert.assertEquals(11, rs.getInt("rows"));
+    } finally {
+      TestUtil.closeQuietly(rs);
       TestUtil.closeQuietly(pstmt);
     }
   }
