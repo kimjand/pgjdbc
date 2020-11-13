@@ -49,15 +49,15 @@ public class V3ParameterListTests {
   @Before
   public void setUp() throws Exception {
     transferModeRegistry = new TypeTransferModeRegistry() {
-      @Override
-      public boolean useBinaryForSend(int oid) {
-        return false;
-      }
+        @Override
+        public boolean useBinaryForSend(int oid) {
+            return false;
+        }
 
-      @Override
-      public boolean useBinaryForReceive(int oid) {
-        return false;
-      }
+        @Override
+        public boolean useBinaryForReceive(int oid) {
+            return false;
+        }
     };
   }
 
