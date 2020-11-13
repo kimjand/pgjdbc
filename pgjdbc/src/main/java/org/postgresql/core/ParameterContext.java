@@ -13,11 +13,12 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * {@link org.postgresql.core.Parser} stores information about placeholder occurrences in ParameterContext.
- * In case of standard JDBC placeholders {@code '?'} the position in the SQL text is recorded. For named
- * placeholders {@code ":paramName"} the name is recorded as well as the position. {@code PgPreparedStatement} can
- * then use the name to lookup the parameter corresponding index. These values are also used by
- * toString() methods to provide a human readable representation of the SQL text.
+ * {@link org.postgresql.core.Parser} stores information about placeholder occurrences in
+ * ParameterContext. In case of standard JDBC placeholders {@code '?'} the position in the SQL text
+ * is recorded. For named placeholders {@code ":paramName"} the name is recorded as well as the
+ * position. {@code PgPreparedStatement} can then use the name to lookup the parameter corresponding
+ * index. These values are also used by toString() methods to provide a human readable
+ * representation of the SQL text.
  */
 public class ParameterContext {
 
@@ -169,17 +170,21 @@ public class ParameterContext {
    * @return Returns the number of parameter to be sent to the backend.
    */
   public int nativeParameterCount() {
-    if (placeholderNames != null) {
-      return placeholderNames.size();
-    }
-    return placeholderCount();
+    return placeholderNames != null ? placeholderNames.size() : placeholderCount();
   }
 
   public List<Integer> getPlaceholderPositions() {
-    if (placeholderPositions == null) {
-      return Collections.emptyList();
+    return placeholderPositions == null ? Collections.emptyList() : placeholderPositions;
+  }
+
+  /**
+   * @return Returns an unmodifiableList containing captured placeholder names.
+   */
+  public List<String> getPlaceholderNames() {
+    if (placeholderNames == null) {
+      throw new IllegalStateException("Call hasNamedParameters() first.");
     }
-    return placeholderPositions;
+    return Collections.unmodifiableList(this.placeholderNames);
   }
 
   private void checkAndSetBindStyle(BindStyle bindStyle) throws SQLException {

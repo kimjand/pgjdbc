@@ -28,7 +28,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -48,8 +47,6 @@ class SimpleParameterList implements V3ParameterList {
   private static final byte TEXT = 0;
   private static final byte BINARY = 4;
 
-  private static final ParameterContext NO_PARAMETER_CONTEXT = ParameterContext.EMPTY_CONTEXT;
-
   /**
    * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
    * to null".
@@ -66,7 +63,7 @@ class SimpleParameterList implements V3ParameterList {
 
   SimpleParameterList(int paramCount,
       @Nullable TypeTransferModeRegistry transferModeRegistry) {
-    this(paramCount, transferModeRegistry, NO_PARAMETER_CONTEXT);
+    this(paramCount, transferModeRegistry, ParameterContext.EMPTY_CONTEXT);
   }
 
   SimpleParameterList(int paramCount,
@@ -83,12 +80,11 @@ class SimpleParameterList implements V3ParameterList {
       // paramNameIndex will be used to perform index lookup in the various setter methods in
       // PgPreparedStatement
 
-      this.paramNames = new ArrayList<>(paramCount);
-      this.paramNameIndex = new HashMap<>(paramCount);
+      this.paramNames = parameterCtx.getPlaceholderNames();
+      this.paramNameIndex = new HashMap<>((int) (paramCount / 0.75) + 1);
 
       for (int i = 0; i < paramCount; i++) {
-        final String placeholderName = parameterCtx.getPlaceholderName(i);
-        this.paramNames.add(placeholderName);
+        final String placeholderName = this.paramNames.get(i);
         this.paramNameIndex.put(placeholderName, i + 1);
       }
     } else {
