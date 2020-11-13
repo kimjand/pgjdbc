@@ -191,12 +191,12 @@ public class ParameterContext {
     if (placeholderPositions == null) {
       placeholderPositions = new ArrayList<>();
     }
-    placeholderPositions.add(position);
     if (hasParameters() && position <= getLastPlaceholderPosition()) {
       throw new IllegalArgumentException("Parameters must be processed in increasing order."
           + "position = " + position + ", LastPlaceholderPosition = "
           + getLastPlaceholderPosition());
     }
+    placeholderPositions.add(position);
     return placeholderPositions.size() - 1;
   }
 }
