@@ -870,7 +870,7 @@ public class Parser {
    * @param c the character to check
    * @return true if valid as second or later character of an identifier; false if not
    */
-  public static boolean isIdentifierContChar(char c) {
+    public static boolean isIdentifierContChar(char c) {
     return Character.isJavaIdentifierPart(c);
   }
 
