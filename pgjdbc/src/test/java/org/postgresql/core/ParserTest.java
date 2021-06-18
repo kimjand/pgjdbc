@@ -302,6 +302,26 @@ public class ParserTest {
   }
 
   @Test
+  public void namedPlaceholderComplex() throws SQLException {
+    String strSQL;
+    NativeQuery nativeQuery;
+
+    // CREATE a FUNCTION
+    strSQL = "CREATE FUNCTION testParser(bigint p) RETURNS bigint AS $$ DECLARE v int; BEGIN v := 2*p RETURN v; END $$";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(strSQL, nativeQuery.nativeSql);
+    assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
+
+    // SELECT from FUNCTION assigning parameters
+    strSQL = "SELECT func(p1 := 'x', p2 := 'y')";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false).get(0);
+    assertEquals(strSQL, nativeQuery.nativeSql);
+    assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
+  }
+
+  @Test
   public void insertReturningInWith() throws SQLException {
     String query =
         "with x as (insert into mytab(x) values(1) returning x) insert test(id, name) select 1, 'value' from test2";
