@@ -27,6 +27,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -256,6 +257,14 @@ class SimpleParameterList implements V3ParameterList {
           }
           return Double.toString(d);
 
+        case Oid.NUMERIC:
+          Number n = ByteConverter.numeric((byte[]) paramValue);
+          if (n instanceof Double) {
+            assert ((Double) n).isNaN();
+            return "'NaN'::numeric";
+          }
+          return n.toString();
+
         case Oid.UUID:
           String uuid =
               new UUIDArrayAssistant().buildElement((byte[]) paramValue, 0, 16).toString();
@@ -427,7 +436,7 @@ class SimpleParameterList implements V3ParameterList {
     byte[] encoded = this.encoded[index];
     if (encoded == null) {
       // Encode value and compute actual length using UTF-8.
-      this.encoded[index] = encoded = Utils.encodeUTF8(value.toString());
+      this.encoded[index] = encoded = value.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     return encoded.length;
@@ -462,7 +471,7 @@ class SimpleParameterList implements V3ParameterList {
 
     // Encoded string.
     if (encoded[index] == null) {
-      encoded[index] = Utils.encodeUTF8((String) paramValue);
+      encoded[index] = ((String) paramValue).getBytes(StandardCharsets.UTF_8);
     }
     pgStream.send(encoded[index]);
   }

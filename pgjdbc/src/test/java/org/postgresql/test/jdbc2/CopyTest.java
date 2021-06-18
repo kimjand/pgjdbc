@@ -66,7 +66,7 @@ public class CopyTest {
   public void setUp() throws Exception {
     con = TestUtil.openDB();
 
-    TestUtil.createTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
+    TestUtil.createTempTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
 
     copyAPI = ((PGConnection) con).getCopyAPI();
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
@@ -425,14 +425,10 @@ public class CopyTest {
     // on the Connection object fails to deadlock.
     con.setAutoCommit(false);
 
-    // We get the process id before the COPY as we cannot run other commands
-    // on the connection during the COPY operation.
-    int pid = TestUtil.getBackendPid(con);
-
     CopyManager manager = con.unwrap(PGConnection.class).getCopyAPI();
     CopyIn copyIn = manager.copyIn("COPY copytest FROM STDIN with " + copyParams);
+    TestUtil.terminateBackend(con);
     try {
-      TestUtil.terminateBackend(pid);
       byte[] bunchOfNulls = ",,\n".getBytes();
       while (true) {
         copyIn.writeToCopy(bunchOfNulls, 0, bunchOfNulls.length);
@@ -462,7 +458,8 @@ public class CopyTest {
     if (rollbackException == null) {
       fail("rollback should have thrown an exception");
     }
-    acceptIOCause(rollbackException);
+
+    assertTrue( rollbackException instanceof SQLException);
   }
 
   private static class Rollback extends Thread {

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -132,7 +133,8 @@ public class PGStream implements Closeable, Flushable {
     this.hostSpec = pgStream.hostSpec;
 
     Socket socket = createSocket(timeout);
-
+    changeSocket(socket);
+    setEncoding(Encoding.getJVMEncoding("UTF-8"));
     // set the buffer sizes and timeout
     socket.setReceiveBufferSize(receiveBufferSize);
     socket.setSendBufferSize(sendBufferSize);
@@ -221,8 +223,11 @@ public class PGStream implements Closeable, Flushable {
   }
 
   private Socket createSocket(int timeout) throws IOException {
-
     Socket socket = socketFactory.createSocket();
+    String localSocketAddress = hostSpec.getLocalSocketAddress();
+    if (localSocketAddress != null) {
+      socket.bind(new InetSocketAddress(InetAddress.getByName(localSocketAddress), 0));
+    }
     if (!socket.isConnected()) {
       // When using a SOCKS proxy, the host might not be resolvable locally,
       // thus we defer resolution until the traffic reaches the proxy. If there
@@ -232,8 +237,6 @@ public class PGStream implements Closeable, Flushable {
           : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
       socket.connect(address, timeout);
     }
-    changeSocket(socket);
-    setEncoding(Encoding.getJVMEncoding("UTF-8"));
     return socket;
   }
 
@@ -245,6 +248,10 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something goes wrong
    */
   public void changeSocket(Socket socket) throws IOException {
+    assert connection != socket : "changeSocket is called with the current socket as argument."
+        + " This is a no-op, however, it re-allocates buffered streams, so refrain from"
+        + " excessive changeSocket calls";
+
     this.connection = socket;
 
     // Submitted by Jason Venner <jason@idiom.com>. Disable Nagle

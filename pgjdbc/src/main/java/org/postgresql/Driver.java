@@ -36,6 +36,7 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -205,7 +206,7 @@ public class Driver implements java.sql.Driver {
    * @param info a list of arbitrary tag/value pairs as connection arguments
    * @return a connection to the URL or null if it isnt us
    * @exception SQLException if a database access error occurs or the url is
-   * {@code null}
+   *            {@code null}
    * @see java.sql.Driver#connect
    */
   @Override
@@ -343,7 +344,7 @@ public class Driver implements java.sql.Driver {
       } else if ( DriverManager.getLogStream() != null) {
         handler = new StreamHandler(DriverManager.getLogStream(), formatter);
       } else {
-        handler = new StreamHandler(System.err, formatter);
+        handler = new ConsoleHandler();
       }
     } else {
       handler.setFormatter(formatter);
@@ -645,9 +646,10 @@ public class Driver implements java.sql.Driver {
   private static HostSpec[] hostSpecs(Properties props) {
     String[] hosts = castNonNull(props.getProperty("PGHOST")).split(",");
     String[] ports = castNonNull(props.getProperty("PGPORT")).split(",");
+    String localSocketAddress = props.getProperty("localSocketAddress");
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
     for (int i = 0; i < hostSpecs.length; ++i) {
-      hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]));
+      hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]), localSocketAddress);
     }
     return hostSpecs;
   }

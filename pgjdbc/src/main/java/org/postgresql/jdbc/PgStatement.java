@@ -335,7 +335,11 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
-  private void closeUnclosedResults() throws SQLException {
+  /*
+  If there are multiple result sets we close any that have been processed and left open
+  by the client.
+   */
+  private void closeUnclosedProcessedResults() throws SQLException {
     synchronized (this) {
       ResultWrapper resultWrapper = this.firstUnclosedResult;
       ResultWrapper currentResult = this.result;
@@ -357,7 +361,11 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Close any existing resultsets associated with this statement.
     synchronized (this) {
-      closeUnclosedResults();
+      closeUnclosedProcessedResults();
+
+      if ( this.result != null && this.result.getResultSet() != null ) {
+        this.result.getResultSet().close();
+      }
       result = null;
 
       ResultWrapper generatedKeys = this.generatedKeys;
@@ -528,7 +536,7 @@ public class PgStatement implements Statement, BaseStatement {
     checkClosed();
     if (max < 0) {
       throw new PSQLException(
-          GT.tr("Maximum number of rows must be a value grater than or equal to 0."),
+          GT.tr("Maximum number of rows must be a value greater than or equal to 0."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
     maxrows = max;
@@ -1189,7 +1197,7 @@ public class PgStatement implements Statement, BaseStatement {
       // CLOSE_ALL_RESULTS
       if (current == Statement.CLOSE_ALL_RESULTS) {
         // Close preceding resultsets.
-        closeUnclosedResults();
+        closeUnclosedProcessedResults();
       }
 
       // Done.

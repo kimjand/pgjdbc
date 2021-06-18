@@ -5,19 +5,89 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+- If assumeMinServerVersion is not defined and server is at least 9.0, group startup statements into a single transaction PR [#1977](https://github.com/pgjdbc/pgjdbc/pull/1977)
 
 ### Added
 
 ### Fixed
+- Rework OSGi bundle activator so it does not rely on exception message to check DataSourceFactory presence PR [#507](https://github.com/pgjdbc/pgjdbc/pull/507)
+- Fix "Avoid leaking server error details through BatchUpdateException when logServerErrorDetail=false" [PR #2148](https://github.com/pgjdbc/pgjdbc/pull/2148) fixes Issue #2147
+- Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified [PR #2174](https://github.com/pgjdbc/pgjdbc/pull/2174)
 
-## [42.2.16] (2020-08-20)
+## [42.2.20] (2021-04-19)
+
+### Changed
+
+### Added
 
 ### Fixed
-- - Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays. 
-  Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default 
+- fix: Partitioned indexes were not found fixes [#2078](https://github.com/pgjdbc/pgjdbc/issues/2078) PR [#2087](https://github.com/pgjdbc/pgjdbc/pull/2087)
+
+- isValid() timeout should not be blocked [#1943](https://github.com/pgjdbc/pgjdbc/pull/1943) Cherry-picked [#2076](https://github.com/pgjdbc/pgjdbc/pull/2076)
+  The usage of `setQueryTimeout();` with the same value as the `setNetworkTimeout();` is blocking the current transaction timeout.
+  The timeouts are blocking each other with this approach.
+- DatabaseMetaData.getTables returns columns in UPPER case as per the spec [PR #2092](https://github.com/pgjdbc/pgjdbc/pull/2092) fixes [Issue #830](https://github.com/pgjdbc/pgjdbc/issues/830)
+
+## [42.2.19] (2021-02-18)
+
+**Notable Changes**
+- Now the driver uses SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.
+- If closeOnCompletion is called on an existing statement and the statement
+is executed a second time it will fail.
+
+### Changed
+- Perf: avoid duplicate PGStream#changeSocket calls
+- Fix: Actually close unclosed results. Previously was not closing the first unclosed result fixes #1903 (#1905)
+There is a small behaviour change here as a result. If closeOnCompletion is called on an existing statement and the statement
+is executed a second time it will fail.
+
+### Added
+- Verify code via forbidden-apis (jdk-internal and jdk-non-portable signatures) [PR #2012](https://github.com/pgjdbc/pgjdbc/pull/2012)
+
+### Fixed
+- Fix Binary transfer for numeric fixes #1935
+- Fix Allow specifying binaryTransferEnable even for those types that are not enabled by default
+- Fix: properly set cancel socket timeout (#2044)
+- Fix "Required class information missing" when old org.jboss:jandex parses pgjdbc classes [issue 2008][https://github.com/pgjdbc/pgjdbc/issues/2008]
+- Fix PGCopyInputStream returning the last row twice when reading with CopyOut API [issue 2016][https://github.com/pgjdbc/pgjdbc/issues/2016]
+- Fix Connnection.isValid() to not wait longer than existing network timeout [PR #2040](https://github.com/pgjdbc/pgjdbc/pull/2040)
+- Fix Passwords with spaces (ASCII and non-ASCII) now work with SCRAM authentication (driver now uses SASLprep normalization) [PR #2052](https://github.com/pgjdbc/pgjdbc/pull/2052)
+- Fix DatabaseMetaData.getTablePrivileges() to include views, materialized views, and foreign tables [PR #2049](https://github.com/pgjdbc/pgjdbc/pull/2049)
+- Fix Resolve ParseError in PGtokenizer fixes #2050
+- Fix return metadata privileges for views and foreign tables
+- DatabaseMetaData.getTables returns columns in UPPER case as per the spec [PR #2092](https://github.com/pgjdbc/pgjdbc/pull/2092) fixes Issue #830
+
+## [42.2.18]
+### Fixed
+- Unfortunately changing the default of gssEncMode to ALLOW was not enough. The GSSEncMode Enum was not changed as well
+  fixed in #1920
+
+## [42.2.17]
+### Changed
+- Change default of gssEncMode to ALLOW. PostgreSQL can deal with PREFER but there are cloud providers that did not implement the protocol properly. Libpq gets around this by checking for a GSS credential cache before attempting the connection. This is possible in JDK 8 and up, but not JDK6, or JDK7 fixes Issue #1868 [PR #1913](https://github.com/pgjdbc/pgjdbc/pull/1913)
+
+### Added
+- Add smallserial metadata [PR #899(https://github.com/pgjdbc/pgjdbc/pull/899)
+
+### Fixed
+- Avoid NullPointerException when receiving PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney [PR 1873] (https://github.com/pgjdbc/pgjdbc/pull/1873).
+- The driver returns enum and jsonb arrays elements as String objects (like in 42.2.14 and earlier versions) [PR 1879](https://github.com/pgjdbc/pgjdbc/pull/1879).
+- PgTokenizer was ignoring last empty token [PR #1882](https://github.com/pgjdbc/pgjdbc/pull/1882)
+- Remove osgi from karaf fixes Issue #1891 [PR #1902](https://github.com/pgjdbc/pgjdbc/pull/1902)
+
+## [42.2.16] (2020-08-20)
+### Known issues
+- The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)
+
+### Fixed
+- Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays.
+  Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default
   for Postgres when sent as strings such as '{1,2,3}'. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
 
 ## [42.2.15] (2020-08-14)
+### Known issues
+- The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)
+
 ### Changed
 - Rename source distribution archive to `postgresql-$version-jdbc-src.tar.gz`, and add top-level archive folder [ba017507](https://github.com/pgjdbc/pgjdbc/commit/ba0175072ee9c751c1496d2fe170f4af7256f1a5)
 - Add the ability to connect with a GSSAPI encrypted connection. As of PostgreSQL version 12 GSSAPI encrypted connections
@@ -400,4 +470,8 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.13...REL42.2.14
 [42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
 [42.2.16]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...REL42.2.16
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...HEAD
+[42.2.17]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...REL42.2.17
+[42.2.18]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...REL42.2.18
+[42.2.19]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.18...REL42.2.19
+[42.2.20]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.19...REL42.2.20
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.20...HEAD

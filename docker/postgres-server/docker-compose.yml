@@ -4,20 +4,27 @@ services:
     image: postgres:${PGV:-latest}
     ports:
       - 5432:5432
+      - 5433:5433
+      - 5434:5434
     security_opt:
       - seccomp:unconfined
     volumes:
-      - ./scripts/chmod_ssl.sh:/home/certdir/chmod_ssl.sh
-      - ./scripts/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
-      - ../.travis/travis_ssl_users.sh:/home/scripts/travis_ssl_users.sh
-      - ../certdir/server:/home/certdir
+      - ./scripts/:/custom/scripts:ro
+      - ../../certdir/server:/custom/certdir:ro
     entrypoint:
       - bash
-      - /home/certdir/chmod_ssl.sh
+      - /custom/scripts/entrypoint.sh
     environment:
       - SSL=${SSL:-yes}
       - XA=${XA:-yes}
       - SCRAM=${SCRAM:-yes}
+      - TZ=${TZ:-Etc/UTC}
+      - FSYNC=${FSYNC:-no}
+      - SYNC_COMMIT=${SYNC_COMMIT:-yes}
+      - FULL_PAGE_WRITES=${FULL_PAGE_WRITES:-no}
+      - AUTO_VACCUUM=${AUTO_VACCUUM:-no}
+      - TRACK_COUNTS=${TRACK_COUNTS:-no}
+      - CREATE_REPLICAS=${CREATE_REPLICAS:-no}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=
       - POSTGRES_DB=postgres

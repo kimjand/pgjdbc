@@ -80,6 +80,7 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
+    TestUtil.createView(con, "viewtest", "SELECT id, quest FROM metadatatest");
     TestUtil.dropType(con, "custom");
     TestUtil.dropType(con, "_custom");
     TestUtil.createCompositeType(con, "custom", "i int", false);
@@ -124,6 +125,7 @@ public class DatabaseMetaDataTest {
     Statement stmt = con.createStatement();
     stmt.execute("DROP FUNCTION f4(int)");
 
+    TestUtil.dropView(con, "viewtest");
     TestUtil.dropTable(con, "metadatatest");
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
@@ -627,6 +629,24 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testViewPrivileges() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getTablePrivileges(null, null, "viewtest");
+    boolean foundSelect = false;
+    while (rs.next()) {
+      if (rs.getString("GRANTEE").equals(TestUtil.getUser())
+          && rs.getString("PRIVILEGE").equals("SELECT")) {
+        foundSelect = true;
+      }
+    }
+    rs.close();
+    // Test that the view owner has select priv
+    assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
+        foundSelect);
+  }
+
+  @Test
   public void testPrimaryKeys() throws SQLException {
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
@@ -790,7 +810,7 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testTableTypes() throws SQLException {
-    final List<String> expectedTableTypes = new ArrayList<String>(Arrays.asList("FOREIGN TABLE", "INDEX",
+    final List<String> expectedTableTypes = new ArrayList<String>(Arrays.asList("FOREIGN TABLE", "INDEX", "PARTITIONED INDEX",
         "MATERIALIZED VIEW", "PARTITIONED TABLE", "SEQUENCE", "SYSTEM INDEX", "SYSTEM TABLE", "SYSTEM TOAST INDEX",
         "SYSTEM TOAST TABLE", "SYSTEM VIEW", "TABLE", "TEMPORARY INDEX", "TEMPORARY SEQUENCE", "TEMPORARY TABLE",
         "TEMPORARY VIEW", "TYPE", "VIEW"));
@@ -809,7 +829,7 @@ public class DatabaseMetaDataTest {
     rs.close();
     Collections.sort(expectedTableTypes);
     Collections.sort(foundTableTypes);
-    Assert.assertEquals("The table types received from DatabaseMetaData should match the 17 expected types",
+    Assert.assertEquals("The table types received from DatabaseMetaData should match the 18 expected types",
         true, foundTableTypes.equals(expectedTableTypes));
   }
 
@@ -1310,21 +1330,44 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testPartionedTablesIndex() throws SQLException {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+      Statement stmt = null;
+      try {
+        stmt = con.createStatement();
+        stmt.execute(
+            "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getPrimaryKeys("", "", "measurement");
+        assertTrue(rs.next());
+        assertEquals("measurement_pkey", rs.getString(6));
+
+      } finally {
+        if (stmt != null) {
+          stmt.execute("drop table if exists measurement");
+          stmt.close();
+        }
+      }
+    }
+
+  }
+
+  @Test
   public void testPartitionedTables() throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
       Statement stmt = null;
       try {
         stmt = con.createStatement();
         stmt.execute(
-            "CREATE TABLE measurement (logdate date not null,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+            "CREATE TABLE measurement (logdate date not null ,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
         ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"PARTITIONED TABLE"});
         assertTrue(rs.next());
         assertEquals("measurement", rs.getString("table_name"));
-
+        rs.close();
       } finally {
         if (stmt != null) {
-          stmt.execute("drop table measurement");
+          stmt.execute("drop table if exists measurement");
           stmt.close();
         }
       }
@@ -1540,4 +1583,16 @@ public class DatabaseMetaDataTest {
     stmt.close();
   }
 
+  @Test
+  public void testUpperCaseMetaDataLabels() throws SQLException {
+    ResultSet rs = con.getMetaData().getTables(null, null, null, null);
+    ResultSetMetaData rsmd = rs.getMetaData();
+
+    assertEquals("TABLE_CAT", rsmd.getColumnName(1));
+    assertEquals("TABLE_SCHEM", rsmd.getColumnName(2));
+    assertEquals("TABLE_NAME", rsmd.getColumnName(3));
+    assertEquals("TABLE_TYPE", rsmd.getColumnName(4));
+    assertEquals("REMARKS", rsmd.getColumnName(5));
+
+  }
 }

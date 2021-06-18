@@ -17,7 +17,6 @@ import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
-import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
@@ -77,7 +76,6 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
@@ -146,6 +144,8 @@ public class PgConnection implements BaseConnection {
   private boolean readOnly = false;
   // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
   private boolean  hideUnprivilegedObjects ;
+  // Whether to include error details in logging and exceptions
+  private final boolean logServerErrorDetail;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
 
@@ -282,12 +282,7 @@ public class PgConnection implements BaseConnection {
 
     // Initialize timestamp stuff
     timestampUtils = new TimestampUtils(!queryExecutor.getIntegerDateTimes(),
-        new Provider<@Nullable TimeZone>() {
-          @Override
-          public @Nullable TimeZone get() {
-            return queryExecutor.getTimeZone();
-          }
-        });
+        new QueryExecutorTimeZoneProvider(queryExecutor));
 
     // Initialize common queries.
     // isParameterized==true so full parse is performed and the engine knows the query
@@ -304,6 +299,7 @@ public class PgConnection implements BaseConnection {
     if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
       openStackTrace = new Throwable("Connection was created at this point:");
     }
+    this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
 
     if (haveMinimumServerVersion(ServerVersion.v8_3)) {
@@ -322,7 +318,7 @@ public class PgConnection implements BaseConnection {
 
     fieldMetadataCache = new LruCache<FieldMetadata.Key, FieldMetadata>(
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
-            Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024 * 1024),
+            Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024L * 1024L),
         false);
 
     replicationConnection = PGProperty.REPLICATION.get(info) != null;
@@ -350,6 +346,7 @@ public class PgConnection implements BaseConnection {
         Oid.INT8,
         Oid.FLOAT4,
         Oid.FLOAT8,
+        Oid.NUMERIC,
         Oid.TIME,
         Oid.DATE,
         Oid.TIMETZ,
@@ -1415,10 +1412,17 @@ public class PgConnection implements BaseConnection {
     if (isClosed()) {
       return false;
     }
+    boolean changedNetworkTimeout = false;
     try {
-      int savedNetworkTimeOut = getNetworkTimeout();
+      int oldNetworkTimeout = getNetworkTimeout();
+      int newNetworkTimeout = (int) Math.min(timeout * 1000L, Integer.MAX_VALUE);
       try {
-        setNetworkTimeout(null, timeout * 1000);
+        // change network timeout only if the new value is less than the current
+        // (zero means infinite timeout)
+        if (newNetworkTimeout != 0 && (oldNetworkTimeout == 0 || newNetworkTimeout < oldNetworkTimeout)) {
+          changedNetworkTimeout = true;
+          setNetworkTimeout(null, newNetworkTimeout);
+        }
         if (replicationConnection) {
           Statement statement = createStatement();
           statement.execute("IDENTIFY_SYSTEM");
@@ -1431,7 +1435,9 @@ public class PgConnection implements BaseConnection {
         }
         return true;
       } finally {
-        setNetworkTimeout(null, savedNetworkTimeOut);
+        if (changedNetworkTimeout) {
+          setNetworkTimeout(null, oldNetworkTimeout);
+        }
       }
     } catch (SQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
@@ -1529,6 +1535,10 @@ public class PgConnection implements BaseConnection {
   public <T> T createQueryObject(Class<T> ifc) throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
+  }
+
+  public boolean getLogServerErrorDetail() {
+    return logServerErrorDetail;
   }
 
   @Override

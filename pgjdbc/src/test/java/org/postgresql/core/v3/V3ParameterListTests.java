@@ -51,12 +51,12 @@ public class V3ParameterListTests {
     transferModeRegistry = new TypeTransferModeRegistry() {
         @Override
         public boolean useBinaryForSend(int oid) {
-            return false;
+          return false;
         }
 
         @Override
         public boolean useBinaryForReceive(int oid) {
-            return false;
+          return false;
         }
     };
   }

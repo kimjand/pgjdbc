@@ -84,7 +84,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
-        Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024 * 1024),
+        Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024L * 1024L),
         false,
         cachedQueryCreateAction,
         new LruCache.EvictAction<CachedQuery>() {
@@ -182,7 +182,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       cancelStream =
           new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout);
       if (cancelSignalTimeout > 0) {
-        cancelStream.getSocket().setSoTimeout(cancelSignalTimeout);
+        cancelStream.setNetworkTimeout(cancelSignalTimeout);
       }
       cancelStream.sendInteger4(16);
       cancelStream.sendInteger2(1234);
