@@ -324,7 +324,7 @@ public class Parser {
         if (placeholderName == ParameterContext.PlaceholderName.UNINITIALIZED) {
           throw new SQLException(
               "Native parameter $" + (i + 1) + " was not found.\nThe following parameters where captured: "
-                  + placeholderNames.stream().filter(Objects::nonNull).collect(Collectors.toList()) + "\n"
+                  + placeholderNames.stream().filter(f -> f != ParameterContext.PlaceholderName.UNINITIALIZED).collect(Collectors.toList()) + "\n"
                   + "Native parameters must form a contiguous set of integers, starting from 1.");
         }
       }
