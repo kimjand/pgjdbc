@@ -396,6 +396,17 @@ public enum PGProperty {
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
   /**
+   * Constrols the styles of parameter placeholders accepted in prepared statements. The default value of {@code none}
+   * disables non-standard placeholders.
+   */
+  PLACEHOLDER_STYLES(
+      "placeholderStyles",
+      "none",
+      "Specifies which extra non-standard styles of placeholders are to be recognized by the driver, if any.",
+      false,
+      new String [] {"any", "named", "native"}),
+
+  /**
    * <p>Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
    * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only,
    * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.</p>
@@ -711,14 +722,7 @@ public enum PGProperty {
   XML_FACTORY_FACTORY(
       "xmlFactoryFactory",
       "",
-      "Factory class to instantiate factories for XML processing"),
-
-  PLACEHOLDER_STYLES(
-      "placeholderStyles",
-      "any",
-      "Specifies which styles of placeholders that are recognized by the driver",
-      false,
-      new String [] {"any", "named", "native"}),
+      "Factory class to instantiate factories for XML processing")
   ;
   private final String name;
   private final @Nullable String defaultValue;

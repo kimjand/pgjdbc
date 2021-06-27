@@ -16,7 +16,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Test cases for the Parser.
@@ -375,6 +377,39 @@ public class ParserTest {
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
+
+    // Maybe some day we will be able to do this. Right now it doesn't make sense.
+    strSQL = ""
+        + "WITH\n"
+        + "  FUNCTION test_func_1(p1 bigint, p2 bigint) RETURNS bigint AS $$ BEGIN return $1*$2;\n"
+        + "END $$ LANGUAGE plpgsql,\n"
+        + "  FUNCTION test_func_2(p1 bigint, p2 bigint) RETURNS bigint AS $$ SELECT $1*$2; $$\n"
+        + "LANGUAGE sql\n"
+        + "SELECT\n"
+        + "  test_func_1( p1 => r.col, :p2),\n"
+        + "  test_func_2(r.col, p2 => :p3)\n"
+        + "FROM\n"
+        + "  some_table r\n"
+        + "WHERE\n"
+        + "  r.col = :p1\n";
+
+    final List<NativeQuery> nativeQueries =
+        Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY);
+    nativeQuery = nativeQueries.get(0);
+    assertEquals(strSQL
+                  .replaceAll(":p1", "\\$3")
+                  .replaceAll(":p2", "\\$1")
+                  .replaceAll(":p3", "\\$2"),
+        nativeQuery.nativeSql);
+    assertEquals(3, nativeQuery.parameterCtx.placeholderCount());
+    assertEquals(3, nativeQuery.parameterCtx.nativeParameterCount());
+
+    List<String> expectedParameterNames = new ArrayList<String>();
+    expectedParameterNames.add("p2");
+    expectedParameterNames.add("p3");
+    expectedParameterNames.add("p1");
+    assertEquals(nativeQuery.parameterCtx.getPlaceholderNames().stream().map(f -> f.name).collect(
+        Collectors.toList()), expectedParameterNames);
   }
 
   @Test

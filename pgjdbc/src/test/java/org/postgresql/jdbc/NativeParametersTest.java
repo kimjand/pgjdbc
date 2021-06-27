@@ -59,6 +59,45 @@ public class NativeParametersTest extends BaseTest4 {
   }
 
   @Test
+  public void nativeParameterSanity() throws Exception {
+    try {
+      con.prepareStatement("select $1+$4");
+      fail("Should throw a SQLException");
+    } catch (SQLException ex) {
+      // ignore
+      assertEquals(
+          "Native parameter $2 was not found.\n"
+              + "The following parameters where captured: [$1, $4]\n"
+              + "Native parameters must form a contiguous set of integers, starting from 1.",
+          ex.getMessage());
+    }
+
+    try {
+      con.prepareStatement("select $2+$0");
+      fail("Should throw a SQLException");
+    } catch (SQLException ex) {
+      // ignore
+      assertEquals(
+          "Native parameter $1 was not found.\n"
+              + "The following parameters where captured: [$2]\n"
+              + "Native parameters must form a contiguous set of integers, starting from 1.",
+          ex.getMessage());
+    }
+
+    try {
+      con.prepareStatement("select $2+$-1");
+      fail("Should throw a SQLException");
+    } catch (SQLException ex) {
+      // ignore
+      assertEquals(
+          "Native parameter $1 was not found.\n"
+              + "The following parameters where captured: [$2]\n"
+              + "Native parameters must form a contiguous set of integers, starting from 1.",
+          ex.getMessage());
+    }
+  }
+
+  @Test
   public void setDateReuse() throws Exception {
     {
       TestUtil.createTable(con, "test_dates", "pk INTEGER, d1 date, d2 date, d3 date");

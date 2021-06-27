@@ -21,6 +21,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Basic query parser infrastructure.
@@ -318,11 +320,12 @@ public class Parser {
       final List<ParameterContext.PlaceholderName> placeholderNames =
           paramCtx.getPlaceholderNames();
       for (int i = 0; i < placeholderNames.size(); i++ ) {
-        final String name = placeholderNames.get(i).name;
-        if (!name.equals("$" + (i + 1))) {
-          throw new IllegalStateException(
-              "Native parameters must appear in increasing order\n parameter $" + (i + 1)
-                  + " was captured as " + name);
+        final ParameterContext.PlaceholderName placeholderName = placeholderNames.get(i);
+        if (placeholderName == null) {
+          throw new SQLException(
+              "Native parameter $" + (i + 1) + " was not found.\nThe following parameters where captured: "
+                  + placeholderNames.stream().filter(Objects::nonNull).collect(Collectors.toList()) + "\n"
+                  + "Native parameters must form a contiguous set of integers, starting from 1.");
         }
       }
     }
