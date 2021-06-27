@@ -42,31 +42,30 @@ public class ParameterContext {
     public PlaceholderName(String prefix, String name) {
       this.prefix = prefix;
       this.name = name;
-      this.prefixedName = prefix+name;
+      this.prefixedName = prefix + name;
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
       return prefixedName.hashCode();
     }
 
     @Override
-    public boolean equals(Object other)
-    {
-      if (this == other)
+    public boolean equals(Object other) {
+      if (this == other) {
         return true;
+      }
 
-      if (!(other instanceof PlaceholderName))
+      if (!(other instanceof PlaceholderName)) {
         return false;
+      }
 
       final PlaceholderName that = (PlaceholderName) other;
       return this.prefix.equals(that.prefix) && this.name.equals(that.name);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
       return this.name;
     }
   }
@@ -122,8 +121,7 @@ public class ParameterContext {
     return placeholderNames != null && !placeholderNames.isEmpty();
   }
 
-  public BindStyle getBindStyle()
-  {
+  public BindStyle getBindStyle() {
     if (bindStyle == null) {
       throw new IllegalStateException("Call hasNamedParameters() first.");
     }
@@ -196,7 +194,7 @@ public class ParameterContext {
    * @throws SQLException if positional and named parameters are mixed.
    */
   public int addNamedParameter(@NonNegative int position, @NonNull BindStyle bindStyle, @NonNull String placeholderPrefix, @NonNull String bindName) throws SQLException {
-    if (!bindStyle.isNamedParameter){
+    if (!bindStyle.isNamedParameter) {
       throw new IllegalArgumentException("bindStyle " + bindStyle + " is not not a valid option for addNamedParameter");
     }
     checkAndSetBindStyle(bindStyle);
@@ -214,15 +212,16 @@ public class ParameterContext {
         bindIndex = placeholderNames.size();
         placeholderNames.add(placeholderName);
       }
-    }
-    else if ( bindStyle == BindStyle.NATIVE ) {
+    } else if ( bindStyle == BindStyle.NATIVE ) {
       bindIndex = Integer.parseInt(bindName.substring(1)) - 1;
-      while ( placeholderNames.size() <= bindIndex )
+      while ( placeholderNames.size() <= bindIndex ) {
         placeholderNames.add(null);
+      }
       placeholderNames.set(bindIndex, placeholderName);
+    } else {
+      throw new IllegalArgumentException(
+          "bindStyle " + bindStyle + " is not not a valid option for addNamedParameter");
     }
-    else
-      throw new IllegalArgumentException("bindStyle " + bindStyle + " is not not a valid option for addNamedParameter");
 
     if (placeholderAtPosition == null) {
       placeholderAtPosition = new ArrayList<>();

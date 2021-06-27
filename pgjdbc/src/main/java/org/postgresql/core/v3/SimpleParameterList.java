@@ -528,7 +528,7 @@ class SimpleParameterList implements V3ParameterList {
           GT.tr("The ParameterList was not created with named parameters."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-    return this.paramNames.stream().map(f->f.name).collect(Collectors.toList());
+    return this.paramNames.stream().map(f -> f.name).collect(Collectors.toList());
   }
 
   public int[] getParamTypes() {

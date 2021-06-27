@@ -464,8 +464,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public void setPlaceholderStyle(PlaceholderStyle placeholderStyle)
-  {
+  public void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
     this.placeholderStyle = placeholderStyle;
   }
 

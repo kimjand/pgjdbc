@@ -319,8 +319,11 @@ public class Parser {
           paramCtx.getPlaceholderNames();
       for (int i = 0; i < placeholderNames.size(); i++ ) {
         final String name = placeholderNames.get(i).name;
-        if (!name.equals("$"+(i+1)))
-          throw new IllegalStateException("Native parameters must appear in increasing order\n parameter $" + (i + 1) + " was captured as " + name);
+        if (!name.equals("$" + (i + 1))) {
+          throw new IllegalStateException(
+              "Native parameters must appear in increasing order\n parameter $" + (i + 1)
+                  + " was captured as " + name);
+        }
       }
     }
 
