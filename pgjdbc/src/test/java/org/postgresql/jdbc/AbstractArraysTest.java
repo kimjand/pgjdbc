@@ -959,6 +959,16 @@ public abstract class AbstractArraysTest<A> {
       throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PlaceholderStyle getPlaceholderStyle() {
+      throw new UnsupportedOperationException();
+    }
+
     /**
      * {@inheritDoc}
      */

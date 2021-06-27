@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Parser;
 import org.postgresql.core.SqlCommandType;
+import org.postgresql.jdbc.PlaceholderStyle;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,7 +48,7 @@ public class SqlCommandParseTest {
   @Test
   public void run() throws SQLException {
     List<NativeQuery> queries;
-    queries = Parser.parseJdbcSql(sql, true, true, false, true);
+    queries = Parser.parseJdbcSql(sql, true, true, false, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
     assertEquals(sql, type, query.command.getType());
   }

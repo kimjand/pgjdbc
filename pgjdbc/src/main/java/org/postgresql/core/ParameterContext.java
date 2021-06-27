@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
@@ -23,8 +24,51 @@ import java.util.List;
  */
 public class ParameterContext {
 
-  enum BindStyle {
-    POSITIONAL, NAMED
+  public enum BindStyle {
+    POSITIONAL(false), NAMED(true), NATIVE(true);
+
+    public final boolean isNamedParameter;
+
+    BindStyle(boolean isNamedParameter) {
+      this.isNamedParameter = isNamedParameter;
+    }
+  }
+
+  public static class PlaceholderName {
+    public final String prefix;
+    public final String name;
+    public final String prefixedName;
+
+    public PlaceholderName(String prefix, String name) {
+      this.prefix = prefix;
+      this.name = name;
+      this.prefixedName = prefix+name;
+    }
+
+    @Override
+    public int hashCode()
+    {
+      return prefixedName.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object other)
+    {
+      if (this == other)
+        return true;
+
+      if (!(other instanceof PlaceholderName))
+        return false;
+
+      final PlaceholderName that = (PlaceholderName) other;
+      return this.prefix.equals(that.prefix) && this.name.equals(that.name);
+    }
+
+    @Override
+    public String toString()
+    {
+      return this.name;
+    }
   }
 
   /**
@@ -38,14 +82,14 @@ public class ParameterContext {
     }
 
     @Override
-    public int addNamedParameter(int position, String bindName) throws SQLException {
+    public int addNamedParameter(int position, BindStyle bindStyle, String placeholderPrefix, String bindName) throws SQLException {
       throw new UnsupportedOperationException();
     }
   };
 
   private @Nullable BindStyle bindStyle = null;
   private @Nullable List<Integer> placeholderPositions = null;
-  private @Nullable List<String> placeholderNames = null;
+  private @Nullable List<PlaceholderName> placeholderNames = null;
   private @Nullable List<Integer> placeholderAtPosition = null;
 
   /**
@@ -78,6 +122,14 @@ public class ParameterContext {
     return placeholderNames != null && !placeholderNames.isEmpty();
   }
 
+  public BindStyle getBindStyle()
+  {
+    if (bindStyle == null) {
+      throw new IllegalStateException("Call hasNamedParameters() first.");
+    }
+    return this.bindStyle;
+  }
+
   /**
    * @param i 0-indexed position in the order of first appearance
    * @return The name of the placeholder at this backend parameter position
@@ -86,7 +138,18 @@ public class ParameterContext {
     if (placeholderNames == null) {
       throw new IllegalStateException("Call hasNamedParameters() first.");
     }
-    return placeholderNames.get(i);
+    return placeholderNames.get(i).name;
+  }
+
+  /**
+   * @param i 0-indexed position in the order of first appearance
+   * @return The name of the placeholder at this backend parameter position, including prefix.
+   */
+  public String getPlaceholderNameIncludingPrefix(@NonNegative int i) {
+    if (placeholderNames == null) {
+      throw new IllegalStateException("Call hasNamedParameters() first.");
+    }
+    return placeholderNames.get(i).prefixedName;
   }
 
   /**
@@ -126,22 +189,40 @@ public class ParameterContext {
    * of their placeholder.
    *
    * @param position in the SQL text where the parser captured the placeholder.
-   * @param bindName is the placeholder name captured by the parser.
+   * @param bindStyle is the bindStyle to be used for this parameter, styles can not be mixed in a statement.
+   * @param placeholderPrefix is the prefix that was captured for this placholder.
+   * @param bindName is the name to be used when binding a value for the parameter represented by this placeholder.
    * @return 1-indexed position in the order of first appearance of named parameters
    * @throws SQLException if positional and named parameters are mixed.
    */
-  public int addNamedParameter(@NonNegative int position, String bindName) throws SQLException {
-    checkAndSetBindStyle(BindStyle.NAMED);
+  public int addNamedParameter(@NonNegative int position, @NonNull BindStyle bindStyle, @NonNull String placeholderPrefix, @NonNull String bindName) throws SQLException {
+    if (!bindStyle.isNamedParameter){
+      throw new IllegalArgumentException("bindStyle " + bindStyle + " is not not a valid option for addNamedParameter");
+    }
+    checkAndSetBindStyle(bindStyle);
     checkAndAddPosition(position);
 
     if (placeholderNames == null) {
       placeholderNames = new ArrayList<>();
     }
-    int bindIndex = placeholderNames.indexOf(bindName);
-    if (bindIndex == -1) {
-      bindIndex = placeholderNames.size();
-      placeholderNames.add(bindName);
+    final PlaceholderName placeholderName = new PlaceholderName(placeholderPrefix, bindName);
+    int bindIndex;
+
+    if ( bindStyle == BindStyle.NAMED) {
+      bindIndex = placeholderNames.indexOf(placeholderName);
+      if (bindIndex == -1) {
+        bindIndex = placeholderNames.size();
+        placeholderNames.add(placeholderName);
+      }
     }
+    else if ( bindStyle == BindStyle.NATIVE ) {
+      bindIndex = Integer.parseInt(bindName.substring(1)) - 1;
+      while ( placeholderNames.size() <= bindIndex )
+        placeholderNames.add(null);
+      placeholderNames.set(bindIndex, placeholderName);
+    }
+    else
+      throw new IllegalArgumentException("bindStyle " + bindStyle + " is not not a valid option for addNamedParameter");
 
     if (placeholderAtPosition == null) {
       placeholderAtPosition = new ArrayList<>();
@@ -171,7 +252,7 @@ public class ParameterContext {
   /**
    * @return Returns an unmodifiableList containing captured placeholder names.
    */
-  public List<String> getPlaceholderNames() {
+  public List<PlaceholderName> getPlaceholderNames() {
     if (placeholderNames == null) {
       throw new IllegalStateException("Call hasNamedParameters() first.");
     }

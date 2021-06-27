@@ -12,6 +12,7 @@ import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterContext;
 import org.postgresql.core.Parser;
+import org.postgresql.jdbc.PlaceholderStyle;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public class V3ParameterListTests {
       }
       final ParameterContext ctx = new ParameterContext();
       for (int i = 0; i < placeholderPositions.size(); i++) {
-        ctx.addNamedParameter(placeholderPositions.get(i), placeholderNames.get(i));
+        ctx.addNamedParameter(placeholderPositions.get(i), BindStyle.NAMED, ":", placeholderNames.get(i));
       }
 
       return ctx;
@@ -79,14 +80,14 @@ public class V3ParameterListTests {
     assertThrows(IllegalArgumentException.class,
         () -> {
           final ParameterContext parameterContext = new ParameterContext();
-          parameterContext.addNamedParameter(0, "dummy");
-          parameterContext.addNamedParameter(0, "dummy2");
+          parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "", "dummy");
+          parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "", "dummy2");
         });
     assertThrows(IllegalArgumentException.class,
         () -> {
           final ParameterContext parameterContext = new ParameterContext();
-          parameterContext.addNamedParameter(1, "dummy");
-          parameterContext.addNamedParameter(0, "dummy2");
+          parameterContext.addNamedParameter(1, ParameterContext.BindStyle.NAMED, "", "dummy");
+          parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "", "dummy2");
         });
   }
 
@@ -98,7 +99,7 @@ public class V3ParameterListTests {
     NativeQuery nativeQuery;
 
     query = "SELECT :a+:a+:a+:b+:c+:b+:c AS a";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
+    qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyle.ANY);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
 
@@ -112,7 +113,7 @@ public class V3ParameterListTests {
     assertEquals(query, nativeQuery.toString(parameters));
 
     query = "select :ASTR||:bStr||:c AS \nteststr";
-    qry = Parser.parseJdbcSql(query, true, true, true, false);
+    qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyle.ANY);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
 
@@ -142,7 +143,7 @@ public class V3ParameterListTests {
     assertThrows(UnsupportedOperationException.class,
         () -> ParameterContext.EMPTY_CONTEXT.addPositionalParameter(0));
     assertThrows(UnsupportedOperationException.class,
-        () -> ParameterContext.EMPTY_CONTEXT.addNamedParameter(0, "dummy"));
+        () -> ParameterContext.EMPTY_CONTEXT.addNamedParameter(0, ParameterContext.BindStyle.NAMED,"", "dummy"));
   }
 
   /**

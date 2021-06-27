@@ -713,8 +713,13 @@ public enum PGProperty {
       "",
       "Factory class to instantiate factories for XML processing"),
 
+  PLACEHOLDER_STYLES(
+      "placeholderStyles",
+      "any",
+      "Specifies which styles of placeholders that are recognized by the driver",
+      false,
+      new String [] {"any", "named", "native"}),
   ;
-
   private final String name;
   private final @Nullable String defaultValue;
   private final boolean required;

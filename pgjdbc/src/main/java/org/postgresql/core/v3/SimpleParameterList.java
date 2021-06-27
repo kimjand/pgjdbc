@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Parameter list for a single-statement V3 query.
@@ -54,7 +55,7 @@ class SimpleParameterList implements V3ParameterList {
    */
   private static final Object NULL_OBJECT = new Object();
   private final @Nullable Map<String, Integer> paramNameIndex;
-  private final @Nullable List<String> paramNames;
+  private final @Nullable List<ParameterContext.PlaceholderName> paramNames;
   private final @Nullable Object[] paramValues;
   private final int[] paramTypes;
   private final byte[] flags;
@@ -85,8 +86,8 @@ class SimpleParameterList implements V3ParameterList {
       this.paramNameIndex = new HashMap<>((int) (paramCount / 0.75) + 1);
 
       for (int i = 0; i < paramCount; i++) {
-        final String placeholderName = this.paramNames.get(i);
-        this.paramNameIndex.put(placeholderName, i + 1);
+        final ParameterContext.PlaceholderName placeholderName = this.paramNames.get(i);
+        this.paramNameIndex.put(placeholderName.name, i + 1);
       }
     } else {
       this.paramNames = null;
@@ -223,7 +224,7 @@ class SimpleParameterList implements V3ParameterList {
       if (paramNames == null) {
         return "?";
       } else {
-        return ":" + paramNames.get(index);
+        return paramNames.get(index).prefixedName;
       }
     } else if (paramValue == NULL_OBJECT) {
       return "NULL";
@@ -527,7 +528,7 @@ class SimpleParameterList implements V3ParameterList {
           GT.tr("The ParameterList was not created with named parameters."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-    return this.paramNames;
+    return this.paramNames.stream().map(f->f.name).collect(Collectors.toList());
   }
 
   public int[] getParamTypes() {

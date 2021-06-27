@@ -25,34 +25,34 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Properties;
 
-public class NamedParametersTest extends BaseTest4 {
+public class NativeParametersTest extends BaseTest4 {
 
   @Override
   protected void updateProperties(Properties props) {
     super.updateProperties(props);
-    PGProperty.PLACEHOLDER_STYLES.set(props, PlaceholderStyle.NAMED.value());
+    PGProperty.PLACEHOLDER_STYLES.set(props, PlaceholderStyle.NATIVE.value());
   }
 
   @Test
   public void dontMix() throws Exception {
     try {
-      con.prepareStatement("select ?+:dummy");
+      con.prepareStatement("select ?+$1");
       fail("Should throw a SQLException");
     } catch (SQLException ex) {
       // ignore
       assertEquals(
           "Multiple bind styles cannot be combined. Saw POSITIONAL first but attempting to also "
-              + "use: NAMED",
+              + "use: NATIVE",
           ex.getMessage());
     }
 
     try {
-      con.prepareStatement("select :dummy+?");
+      con.prepareStatement("select $1+?");
       fail("Should throw a SQLException");
     } catch (SQLException ex) {
       // ignore
       assertEquals(
-          "Multiple bind styles cannot be combined. Saw NAMED first but attempting to also use: "
+          "Multiple bind styles cannot be combined. Saw NATIVE first but attempting to also use: "
               + "POSITIONAL",
           ex.getMessage());
     }
@@ -65,24 +65,24 @@ public class NamedParametersTest extends BaseTest4 {
 
       final java.sql.Date sqlDate = java.sql.Date.valueOf(LocalDate.now());
       {
-        final String insertSQL = "INSERT INTO test_dates( d1, pk, d2, d3 ) values ( :date, :pk, "
-            + ":date, :date )";
+        final String insertSQL = "INSERT INTO test_dates( d1, pk, d2, d3 ) values ( $2, $1, "
+            + "$2, $2 )";
         PGPreparedStatement insertStmt =
             con.prepareStatement(insertSQL).unwrap(PGPreparedStatement.class);
 
-        insertStmt.setInt("pk", 1);
-        insertStmt.setDate("date", sqlDate);
+        insertStmt.setInt(1, 1);
+        insertStmt.setDate(2, sqlDate);
         insertStmt.execute();
         insertStmt.close();
       }
 
       {
-        final String sql = "SELECT td.*, :date::DATE AS d4 FROM test_dates td WHERE td.d1 = :date"
-            + " AND :date "
+        final String sql = "SELECT td.*, $1::DATE AS d4 FROM test_dates td WHERE td.d1 = $1"
+            + " AND $1 "
             + "BETWEEN td.d2 AND td.d3";
         PGPreparedStatement pstmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class);
 
-        pstmt.setDate("date", sqlDate);
+        pstmt.setDate(1, sqlDate);
         pstmt.execute();
 
         final ResultSet resultSet = pstmt.getResultSet();
@@ -100,14 +100,14 @@ public class NamedParametersTest extends BaseTest4 {
       final java.sql.Date sqlDate2 = java.sql.Date.valueOf(LocalDate.now().plus(1,
           ChronoUnit.DAYS));
       {
-        final String updateSQL = "update test_dates SET d1 = :date2, d3 = :date2 WHERE pk = :pk "
-            + "AND d1 =:date RETURNING d1, :date AS d2, d3, d2 AS d4";
+        final String updateSQL = "update test_dates SET d1 = $3, d3 = $3 WHERE pk = $1 "
+            + "AND d1 = $2 RETURNING d1, $2 AS d2, d3, d2 AS d4";
         PGPreparedStatement updateStmt =
             con.prepareStatement(updateSQL).unwrap(PGPreparedStatement.class);
 
-        updateStmt.setInt("pk", 1);
-        updateStmt.setDate("date", sqlDate);
-        updateStmt.setDate("date2", sqlDate2);
+        updateStmt.setInt("$1", 1);
+        updateStmt.setDate("$2", sqlDate);
+        updateStmt.setDate("$3", sqlDate2);
         updateStmt.execute();
 
         final ResultSet resultSet = updateStmt.getResultSet();
@@ -127,24 +127,24 @@ public class NamedParametersTest extends BaseTest4 {
   @Test
   public void setString() throws Exception {
     {
-      PreparedStatement preparedStatement = con.prepareStatement("select :ASTR||:bStr||:c AS "
+      PreparedStatement preparedStatement = con.prepareStatement("select $1||$2||$3 AS "
           + "teststr");
       PGPreparedStatement ps = preparedStatement.unwrap(PGPreparedStatement.class);
-      final String failureParameterName = "BsTr";
+      final String failureParameterName = "$4";
       try {
         ps.setString(failureParameterName, "1");
         fail("Should throw a SQLException");
       } catch (SQLException ex) {
         assertEquals(String.format("The parameterName was not found : %s. The following names "
                 + "are known : \n\t %s", failureParameterName, Arrays.toString(new String[]{
-                  "ASTR",
-                  "bStr",
-                  "c"})),
+                  "$1",
+                  "$2",
+                  "$3"})),
             ex.getMessage());
       }
-      ps.setString("bStr", "1");
-      ps.setString("c", "2");
-      ps.setString("ASTR", "3");
+      ps.setString("$2", "1");
+      ps.setString("$3", "2");
+      ps.setString("$1", "3");
       preparedStatement.execute();
       final ResultSet resultSet = preparedStatement.getResultSet();
       resultSet.next();
@@ -157,14 +157,14 @@ public class NamedParametersTest extends BaseTest4 {
   @Test
   public void setStringReuse() throws Exception {
     {
-      final String sql = "select :aa||:aa||:a AS teststr";
+      final String sql = "select $2||$2||$1 AS teststr";
       PGPreparedStatement ps = con.prepareStatement(sql).unwrap(PGPreparedStatement.class);
 
       // Test toString before bind
       assertEquals(sql, ps.toString());
 
-      ps.setString("a", "1");
-      ps.setString("aa", "2");
+      ps.setString("$1", "1");
+      ps.setString("$2", "2");
 
       // Test toString after bind
       assertEquals("select '2'||'2'||'1' AS teststr", ps.toString());
@@ -183,18 +183,18 @@ public class NamedParametersTest extends BaseTest4 {
   public void setValuesByIndex() throws Exception {
     {
       PgPreparedStatement ps =
-          (PgPreparedStatement) con.prepareStatement("select :a||:b||:c AS teststr");
+          (PgPreparedStatement) con.prepareStatement("select $1||$2||$3 AS teststr");
 
       int i = 1;
       for (String name : ps.getParameterNames()) {
         switch (name) {
-          case "a":
+          case "$1":
             ps.setString(i, "333");
             break;
-          case "b":
+          case "$2":
             ps.setString(i, "1");
             break;
-          case "c":
+          case "$3":
             ps.setString(i, "222");
             break;
         }
@@ -222,16 +222,16 @@ public class NamedParametersTest extends BaseTest4 {
     try {
 
       pstmt =
-          con.prepareStatement("INSERT INTO testbatch VALUES (:int1,:int2,:int1)")
+          con.prepareStatement("INSERT INTO testbatch VALUES ($1,$2,$1)")
               .unwrap(PGPreparedStatement.class);
-      pstmt.setInt("int1", 1);
-      pstmt.setInt("int2", 2);
+      pstmt.setInt("$1", 1);
+      pstmt.setInt("$2", 2);
       pstmt.addBatch();
-      pstmt.setInt("int1", 3);
-      pstmt.setInt("int2", 4);
+      pstmt.setInt("$1", 3);
+      pstmt.setInt("$2", 4);
       pstmt.addBatch();
-      pstmt.setInt("int1", 5);
-      pstmt.setInt("int2", 6);
+      pstmt.setInt("$1", 5);
+      pstmt.setInt("$2", 6);
       pstmt.addBatch();
       BatchExecuteTest.assertSimpleInsertBatch(3, pstmt.executeBatch());
       TestUtil.assertNumberOfRows(con, "testbatch", 3, "3 rows inserted");
@@ -243,32 +243,32 @@ public class NamedParametersTest extends BaseTest4 {
        * and prepares the statement on with the backend. If not then an
        * exception will be thrown for an unknown prepared statement.
        */
-      pstmt.setInt("int1", 1);
-      pstmt.setInt("int2", 2);
+      pstmt.setInt("$1", 1);
+      pstmt.setInt("$2", 2);
       pstmt.addBatch();
-      pstmt.setInt("int1", 3);
-      pstmt.setInt("int2", 4);
+      pstmt.setInt("$1", 3);
+      pstmt.setInt("$2", 4);
       pstmt.addBatch();
-      pstmt.setInt("int1", 5);
-      pstmt.setInt("int2", 6);
+      pstmt.setInt("$1", 5);
+      pstmt.setInt("$2", 6);
       pstmt.addBatch();
-      pstmt.setInt("int1", 7);
-      pstmt.setInt("int2", 8);
+      pstmt.setInt("$1", 7);
+      pstmt.setInt("$2", 8);
       pstmt.addBatch();
       BatchExecuteTest.assertSimpleInsertBatch(4, pstmt.executeBatch());
       TestUtil.assertNumberOfRows(con, "testbatch", 7, "3+4 rows inserted");
 
-      pstmt.setInt("int1", 1);
-      pstmt.setInt("int2", 2);
+      pstmt.setInt("$1", 1);
+      pstmt.setInt("$2", 2);
       pstmt.addBatch();
-      pstmt.setInt("int1", 3);
-      pstmt.setInt("int2", 4);
+      pstmt.setInt("$1", 3);
+      pstmt.setInt("$2", 4);
       pstmt.addBatch();
-      pstmt.setInt("int1", 5);
-      pstmt.setInt("int2", 6);
+      pstmt.setInt("$1", 5);
+      pstmt.setInt("$2", 6);
       pstmt.addBatch();
-      pstmt.setInt("int1", 7);
-      pstmt.setInt("int2", 8);
+      pstmt.setInt("$1", 7);
+      pstmt.setInt("$2", 8);
       pstmt.addBatch();
       BatchExecuteTest.assertSimpleInsertBatch(4, pstmt.executeBatch());
       TestUtil.assertNumberOfRows(con, "testbatch", 11, "3+4+4 rows inserted");

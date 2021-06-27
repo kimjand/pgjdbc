@@ -9,6 +9,7 @@ import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
@@ -48,6 +49,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final boolean columnSanitiserDisabled;
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
   private final PreferQueryMode preferQueryMode;
+  private PlaceholderStyle placeholderStyle;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
   protected final boolean logServerErrorDetail;
@@ -80,6 +82,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.get(info));
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
+    this.placeholderStyle = PlaceholderStyle.of(PGProperty.PLACEHOLDER_STYLES.get(info));
     // assignment.type.incompatible, argument.type.incompatible
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
@@ -458,5 +461,16 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     }
 
     parameterStatuses.put(parameterName, parameterStatus);
+  }
+
+  @Override
+  public void setPlaceholderStyle(PlaceholderStyle placeholderStyle)
+  {
+    this.placeholderStyle = placeholderStyle;
+  }
+
+  @Override
+  public PlaceholderStyle getPlacerholderStyle() {
+    return this.placeholderStyle;
   }
 }

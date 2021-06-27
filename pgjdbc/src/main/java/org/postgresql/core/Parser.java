@@ -7,10 +7,12 @@ package org.postgresql.core;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.EscapedFunctions2;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
@@ -39,19 +41,21 @@ public class Parser {
    * @param withParameters            whether to replace ?, ? with $1, $2, etc
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
+   * @param placeholderStyle          whether non-standard placeholder are allowed or not
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
    * @return list of native queries
    * @throws SQLException if unable to add returning clause (invalid column names)
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
       boolean withParameters, boolean splitStatements,
-      boolean isBatchedReWriteConfigured,
+      boolean isBatchedReWriteConfigured, PlaceholderStyle placeholderStyle,
       String... returningColumnNames) throws SQLException {
     if (!withParameters && !splitStatements
         && returningColumnNames != null && returningColumnNames.length == 0) {
       return Collections.singletonList(new NativeQuery(query,
         SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)));
     }
+    final boolean processParameters = !isBatchedReWriteConfigured || !withParameters;
 
     int fragmentStart = 0;
     int inParen = 0;
@@ -79,6 +83,7 @@ public class Parser {
     int keywordEnd = -1;
     for (int i = 0; i < aChars.length; ++i) {
       char aChar = aChars[i];
+      char nextAChar = (i + 1 < aChars.length) ? aChars[i + 1] : '\0';
       boolean isKeyWordChar = false;
       // ';' is ignored as it splits the queries
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
@@ -100,9 +105,31 @@ public class Parser {
           i = Parser.parseBlockComment(aChars, i);
           break;
 
-        case '$': // possibly dollar quote start
-          i = Parser.parseDollarQuotes(aChars, i);
-          break;
+        case '$': { // possibly dollar quote start or a native placeholder
+          int end = Parser.parseDollarQuotes(aChars, i);
+          if (end == i && (processParameters && placeholderStyleIsAccepted(placeholderStyle, PlaceholderStyle.NATIVE) && sqlCommandTypeSupportsParameters(currentCommandType))) {
+            // look for a native placeholder instead.
+
+            nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+            end = Parser.parseNativePlaceholder(aChars, i);
+            if (end != i) {
+              fragmentStart = i;
+
+              // Keep the dollar in the captured name.
+              final String bindName = query.substring(fragmentStart, end + 1);
+              final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), ParameterContext.BindStyle.NATIVE, "", bindName);
+              nativeSql.append("$").append(bindIndex);
+
+              fragmentStart = end + 1;
+              i = fragmentStart;
+            } else {
+              fragmentStart = i;
+            }
+          } else {
+            i = end;
+          }
+        }
+        break;
 
         // case '(' moved below to parse "values(" properly
 
@@ -181,8 +208,8 @@ public class Parser {
           }
           break;
 
-        case ':': // possibly named placerholder start
-          if (!isBatchedReWriteConfigured || !withParameters) {
+        case ':': // possibly named placerholder start'
+          if (processParameters && placeholderStyleIsAccepted(placeholderStyle, PlaceholderStyle.NAMED) && sqlCommandTypeSupportsParameters(currentCommandType)) {
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
             int end = Parser.parseNamedPlaceholder(aChars, i);
@@ -191,17 +218,21 @@ public class Parser {
 
               // Skip the colon from the captured name.
               final String bindName = query.substring(fragmentStart + 1, end + 1);
-              final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), bindName);
+              final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), ParameterContext.BindStyle.NAMED, ":", bindName);
               nativeSql.append("$").append(bindIndex);
 
-              fragmentStart = end + 1;
+              i = end;
+              fragmentStart = i + 1;
             } else {
               // Skip past '::' to avoid false start on the second colon.
-              if (i + 1 < aChars.length && aChars[i + 1] == ':') {
+              if (nextAChar == ':') {
                 nativeSql.append("::");
-                i += 2;
+                i += 1;
+                fragmentStart = i + 1;
+                continue;
+              } else {
+                fragmentStart += i - fragmentStart;
               }
-              fragmentStart = i;
             }
             break;
           } // Fall-through to default when isBatchedReWriteConfigured == true
@@ -276,6 +307,20 @@ public class Parser {
         if (inParen == 1 && isValuesFound && valuesBraceOpenPosition == -1) {
           valuesBraceOpenPosition = nativeSql.length() + i - fragmentStart;
         }
+      }
+    }
+
+    if (paramCtx.hasParameters() && paramCtx.getBindStyle() == ParameterContext.BindStyle.NATIVE) {
+      // We need to make sure we have a sane set of native placeholders.
+      // The order of appearance is not relevant here, the user has already specified the actual native positions.
+      // The names must conform to the pattern $1..n and appear in increasing order.
+
+      final List<ParameterContext.PlaceholderName> placeholderNames =
+          paramCtx.getPlaceholderNames();
+      for (int i = 0; i < placeholderNames.size(); i++ ) {
+        final String name = placeholderNames.get(i).name;
+        if (!name.equals("$"+(i+1)))
+          throw new IllegalStateException("Native parameters must appear in increasing order\n parameter $" + (i + 1) + " was captured as " + name);
       }
     }
 
@@ -525,8 +570,33 @@ public class Parser {
   }
 
   /**
-   * Test if the {@code -} character at {@code offset} starts a {@code --} style line comment,
-   * and return the position of the first {@code \r} or {@code \n} character.
+   * Test if the colon character ({@code :}) at the given offset starts a named placeholder and
+   * return the offset of the ending parameter character.
+   *
+   * @param query  query
+   * @param offset start offset
+   * @return offset of the ending placeholder character
+   */
+  public static int parseNativePlaceholder(final char[] query, int offset) {
+    // We require at least 1 more character to capture a native placeholder.
+    if (offset + 1 < query.length) {
+      if (Character.isDigit(query[offset + 1]) && Character.digit(query[offset + 1], 10) > 0) {
+        offset++;
+        while (offset + 1 < query.length) {
+          if (Character.isDigit(query[offset + 1])) {
+            offset++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    return offset;
+  }
+
+  /**
+   * Test if the {@code -} character at {@code offset} starts a {@code --} style line comment, and
+   * return the position of the first {@code \r} or {@code \n} character.
    *
    * @param query  query
    * @param offset start offset
@@ -1463,6 +1533,28 @@ public class Parser {
       throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR);
     }
     return i;
+  }
+
+  private static boolean placeholderStyleIsAccepted(PlaceholderStyle setting, PlaceholderStyle placeholderStyle ) {
+    return setting == PlaceholderStyle.ANY || setting == placeholderStyle;
+  }
+
+  private static boolean sqlCommandTypeSupportsParameters(@NonNull SqlCommandType sqlCommandType) {
+    switch (sqlCommandType) {
+      case INSERT:
+      case UPDATE:
+      case DELETE:
+      case SELECT:
+      case WITH:
+        return true;
+
+      case BLANK:
+      case MOVE:
+      case CREATE:
+      case ALTER:
+      default:
+        return false;
+    }
   }
 
   private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};
