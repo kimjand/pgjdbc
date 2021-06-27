@@ -321,7 +321,7 @@ public class Parser {
           paramCtx.getPlaceholderNames();
       for (int i = 0; i < placeholderNames.size(); i++ ) {
         final ParameterContext.PlaceholderName placeholderName = placeholderNames.get(i);
-        if (placeholderName == null) {
+        if (placeholderName == ParameterContext.PlaceholderName.UNINITIALIZED) {
           throw new SQLException(
               "Native parameter $" + (i + 1) + " was not found.\nThe following parameters where captured: "
                   + placeholderNames.stream().filter(Objects::nonNull).collect(Collectors.toList()) + "\n"

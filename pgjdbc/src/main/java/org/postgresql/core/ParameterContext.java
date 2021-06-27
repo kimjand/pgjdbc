@@ -39,6 +39,8 @@ public class ParameterContext {
     public final String name;
     public final String prefixedName;
 
+    public static final PlaceholderName UNINITIALIZED = new PlaceholderName("", "<UNINITIALIZED>");
+
     public PlaceholderName(String prefix, String name) {
       this.prefix = prefix;
       this.name = name;
@@ -51,7 +53,7 @@ public class ParameterContext {
     }
 
     @Override
-    public boolean equals(Object other) {
+    public boolean equals(@Nullable Object other) {
       if (this == other) {
         return true;
       }
@@ -215,7 +217,7 @@ public class ParameterContext {
     } else if ( bindStyle == BindStyle.NATIVE ) {
       bindIndex = Integer.parseInt(bindName.substring(1)) - 1;
       while ( placeholderNames.size() <= bindIndex ) {
-        placeholderNames.add(null);
+        placeholderNames.add(PlaceholderName.UNINITIALIZED);
       }
       placeholderNames.set(bindIndex, placeholderName);
     } else {
