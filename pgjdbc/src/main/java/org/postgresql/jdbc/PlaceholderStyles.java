@@ -9,7 +9,7 @@ package org.postgresql.jdbc;
  *
  * @see org.postgresql.PGProperty#PLACEHOLDER_STYLES
  */
-public enum PlaceholderStyle {
+public enum PlaceholderStyles {
   ANY("any"),
   NAMED("named"),
   NATIVE("native"),
@@ -17,14 +17,14 @@ public enum PlaceholderStyle {
 
   private final String value;
 
-  PlaceholderStyle(String value) {
+  PlaceholderStyles(String value) {
     this.value = value;
   }
 
-  public static PlaceholderStyle of(String mode) {
-    for (PlaceholderStyle placeholderStyle : values()) {
-      if (placeholderStyle.value.equals(mode)) {
-        return placeholderStyle;
+  public static PlaceholderStyles of(String mode) {
+    for (PlaceholderStyles placeholderStyles : values()) {
+      if (placeholderStyles.value.equals(mode)) {
+        return placeholderStyles;
       }
     }
     return NONE;

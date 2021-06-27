@@ -960,12 +960,12 @@ public abstract class AbstractArraysTest<A> {
     }
 
     @Override
-    public void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
+    public void setPlaceholderStyle(PlaceholderStyles placeholderStyles) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public PlaceholderStyle getPlaceholderStyle() {
+    public PlaceholderStyles getPlaceholderStyle() {
       throw new UnsupportedOperationException();
     }
 

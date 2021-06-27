@@ -12,7 +12,7 @@ import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterContext;
 import org.postgresql.core.Parser;
-import org.postgresql.jdbc.PlaceholderStyle;
+import org.postgresql.jdbc.PlaceholderStyles;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -99,7 +99,7 @@ public class V3ParameterListTests {
     NativeQuery nativeQuery;
 
     query = "SELECT :a+:a+:a+:b+:c+:b+:c AS a";
-    qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyle.ANY);
+    qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyles.ANY);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
 
@@ -113,7 +113,7 @@ public class V3ParameterListTests {
     assertEquals(query, nativeQuery.toString(parameters));
 
     query = "select :ASTR||:bStr||:c AS \nteststr";
-    qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyle.ANY);
+    qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyles.ANY);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
 

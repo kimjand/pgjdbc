@@ -30,7 +30,7 @@ public class NativeParametersTest extends BaseTest4 {
   @Override
   protected void updateProperties(Properties props) {
     super.updateProperties(props);
-    PGProperty.PLACEHOLDER_STYLES.set(props, PlaceholderStyle.NATIVE.value());
+    PGProperty.PLACEHOLDER_STYLES.set(props, PlaceholderStyles.NATIVE.value());
   }
 
   @Test

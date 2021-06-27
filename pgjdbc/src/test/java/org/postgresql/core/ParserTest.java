@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
-import org.postgresql.jdbc.PlaceholderStyle;
+import org.postgresql.jdbc.PlaceholderStyles;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -171,7 +171,7 @@ public class ParserTest {
         "insert test(id, name) select 1, 'value' as RETURNING from test2";
     List<NativeQuery> qry =
         Parser.parseJdbcSql(
-            query, true, true, true, true, PlaceholderStyle.NONE);
+            query, true, true, true, true, PlaceholderStyles.NONE);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
     Assert.assertFalse("Query does not have returning clause " + query, returningKeywordPresent);
   }
@@ -182,7 +182,7 @@ public class ParserTest {
         "insert test(id, name) select 1, 'value' from test2 RETURNING id";
     List<NativeQuery> qry =
         Parser.parseJdbcSql(
-            query, true, true, true, true, PlaceholderStyle.NONE);
+            query, true, true, true, true, PlaceholderStyles.NONE);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
     Assert.assertTrue("Query has a returning clause " + query, returningKeywordPresent);
   }
@@ -191,7 +191,7 @@ public class ParserTest {
   public void namedPlaceholderComposite() throws SQLException {
 
     String query = "SELECT :a; SELECT :b";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyle.ANY);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyles.ANY);
     assertEquals(2, qry.size());
 
     NativeQuery nativeQuery;
@@ -213,75 +213,75 @@ public class ParserTest {
 
     // Basic
     strSQL = "SELECT :PARAM";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
     assertEquals("PARAM", nativeQuery.parameterCtx.getPlaceholderName(0));
 
     // Something with a CAST in it
     strSQL = "SELECT :PARAM::boolean";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false,PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
     assertEquals("PARAM", nativeQuery.parameterCtx.getPlaceholderName(0));
 
     // Something with a CAST but no placeholders
     strSQL = "SELECT '{}'::int[]";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     strSQL = "insert into test_logic_table\n"
         + "  select id, md5(random()::text) as name from generate_series(1, 200000) as id";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     // We can also do this
     strSQL = "SELECT $1";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
 
     // But this would be bad syntax
     strSQL = "SELECT :$1";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.NATIVE).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.NATIVE).get(0);
     assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
 
     // This is okay, but ugly
     strSQL = "SELECT :$1";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
     assertEquals("$1", nativeQuery.parameterCtx.getPlaceholderName(0));
 
     // This is ok, as a string
     strSQL = "SELECT $$PARAM$$";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     strSQL = "SELECT :$$PARAM$$";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
     assertEquals("$$PARAM$$", nativeQuery.parameterCtx.getPlaceholderName(0));
 
     // Comments must end the capture of a placeholder name
     strSQL = "SELECT :param--Lovely";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(1, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(1, nativeQuery.parameterCtx.nativeParameterCount());
     assertEquals("param", nativeQuery.parameterCtx.getPlaceholderName(0));
 
     // Placeholder names must not be captured inside comments
     strSQL = "SELECT a--:param";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
@@ -290,7 +290,7 @@ public class ParserTest {
     strSQL = "SELECT :paramA, /* "
         + ":NotAPlaceholder,"
         + "*/:paramB";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(2, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(2, nativeQuery.parameterCtx.nativeParameterCount());
     assertEquals("paramA", nativeQuery.parameterCtx.getPlaceholderName(0));
@@ -298,34 +298,34 @@ public class ParserTest {
 
     // Placeholder names must not start with a number
     strSQL = "SELECT :1param";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     // Native Placeholders must start with a number
     strSQL = "SELECT €param";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     // Native Placeholders must be all positive numbers, greater than 0
     strSQL = "SELECT $0";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     strSQL = "SELECT $-1";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     // Review comment
     strSQL = "select * from foo where name like ':foo'";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
@@ -338,42 +338,42 @@ public class ParserTest {
 
     // CREATE a FUNCTION
     strSQL = "CREATE FUNCTION test_parser(p bigint) RETURNS bigint AS $$ DECLARE v int; BEGIN v := 2*p; RETURN v; END $$ LANGUAGE plpgsql";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     // CREATE a FUNCTION with unnamed parameters
     strSQL = "CREATE FUNCTION test_parser(bigint) RETURNS bigint AS $$ DECLARE v int; BEGIN v := 2*$1; RETURN v; END $$ LANGUAGE plpgsql";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     // SELECT from FUNCTION assigning parameters
     strSQL = "SELECT func(p1 := 'x', p2 := 'y')";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     // SELECT from FUNCTION assigning parameters in another style
     strSQL = "SELECT func(p1 => 'x', p2 => 'y' )";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     // PREPARE a value statement
     strSQL = "PREPARE prep_values(bigint) AS VALUES($1)";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
 
     // CREATE a function that does a PREPARE
     strSQL = "CREATE FUNCTION test_parser_execute_prepared() RETURNS VOID AS $$ BEGIN EXECUTE 'PREPARE prep_values(bigint) AS VALUES($1)'; END $$ \n LANGUAGE plpgsql";
-    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY).get(0);
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
@@ -394,7 +394,7 @@ public class ParserTest {
         + "  r.col = :p1\n";
 
     final List<NativeQuery> nativeQueries =
-        Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyle.ANY);
+        Parser.parseJdbcSql(strSQL, true, true, true, false, PlaceholderStyles.ANY);
     nativeQuery = nativeQueries.get(0);
     assertEquals(strSQL
                   .replaceAll(":p1", "\\$3")
@@ -418,7 +418,7 @@ public class ParserTest {
         "with x as (insert into mytab(x) values(1) returning x) insert test(id, name) select 1, 'value' from test2";
     List<NativeQuery> qry =
         Parser.parseJdbcSql(
-            query, true, true, true, true, PlaceholderStyle.ANY);
+            query, true, true, true, true, PlaceholderStyles.ANY);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
     Assert.assertFalse("There's no top-level <<returning>> clause " + query, returningKeywordPresent);
   }
@@ -426,7 +426,7 @@ public class ParserTest {
   @Test
   public void insertBatchedReWriteOnConflict() throws SQLException {
     String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.ANY);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.ANY);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
@@ -435,7 +435,7 @@ public class ParserTest {
   @Test
   public void insertBatchedReWriteOnConflictUpdateBind() throws SQLException {
     String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name=?";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.ANY);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.ANY);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertFalse("update set name=? is NOT compatible with insert rewrite", command.isBatchedReWriteCompatible());
   }
@@ -443,7 +443,7 @@ public class ParserTest {
   @Test
   public void insertBatchedReWriteOnConflictUpdateConstant() throws SQLException {
     String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name='default'";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.NONE);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertTrue("update set name='default' is compatible with insert rewrite", command.isBatchedReWriteCompatible());
   }
@@ -452,7 +452,7 @@ public class ParserTest {
   public void insertMultiInsert() throws SQLException {
     String query =
         "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.NONE);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
@@ -461,13 +461,13 @@ public class ParserTest {
   @Test
   public void valuesTableParse() throws SQLException {
     String query = "insert into values_table (id, name) values (?,?)";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.NONE);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
 
     query = "insert into table_values (id, name) values (?,?)";
-    qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE);
+    qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.NONE);
     command = qry.get(0).getCommand();
     Assert.assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
@@ -477,7 +477,7 @@ public class ParserTest {
   public void createTableParseWithOnDeleteClause() throws SQLException {
     String[] returningColumns = {"*"};
     String query = "create table \"testTable\" (\"id\" INT SERIAL NOT NULL PRIMARY KEY, \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON DELETE NO ACTION)";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE, returningColumns);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.NONE, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
     Assert.assertEquals(SqlCommandType.CREATE, command.getType());
@@ -487,7 +487,7 @@ public class ParserTest {
   public void createTableParseWithOnUpdateClause() throws SQLException {
     String[] returningColumns = {"*"};
     String query = "create table \"testTable\" (\"id\" INT SERIAL NOT NULL PRIMARY KEY, \"foreignId\" INT REFERENCES \"otherTable\" (\"id\")) ON UPDATE NO ACTION";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE, returningColumns);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.NONE, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
     Assert.assertEquals(SqlCommandType.CREATE, command.getType());
@@ -497,7 +497,7 @@ public class ParserTest {
   public void alterTableParseWithOnDeleteClause() throws SQLException {
     String[] returningColumns = {"*"};
     String query = "alter table \"testTable\" ADD \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON DELETE NO ACTION";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE, returningColumns);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.NONE, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
     Assert.assertEquals(SqlCommandType.ALTER, command.getType());
@@ -507,7 +507,7 @@ public class ParserTest {
   public void alterTableParseWithOnUpdateClause() throws SQLException {
     String[] returningColumns = {"*"};
     String query = "alter table \"testTable\" ADD \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON UPDATE RESTRICT";
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE, returningColumns);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.NONE, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
     Assert.assertEquals(SqlCommandType.ALTER, command.getType());

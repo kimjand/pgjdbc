@@ -7,7 +7,7 @@ package org.postgresql.core;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.EscapedFunctions2;
-import org.postgresql.jdbc.PlaceholderStyle;
+import org.postgresql.jdbc.PlaceholderStyles;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -43,14 +43,14 @@ public class Parser {
    * @param withParameters            whether to replace ?, ? with $1, $2, etc
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
-   * @param placeholderStyle          whether non-standard placeholder are allowed or not
+   * @param placeholderStyles          whether non-standard placeholder are allowed or not
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
    * @return list of native queries
    * @throws SQLException if unable to add returning clause (invalid column names)
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
       boolean withParameters, boolean splitStatements,
-      boolean isBatchedReWriteConfigured, PlaceholderStyle placeholderStyle,
+      boolean isBatchedReWriteConfigured, PlaceholderStyles placeholderStyles,
       String... returningColumnNames) throws SQLException {
     if (!withParameters && !splitStatements
         && returningColumnNames != null && returningColumnNames.length == 0) {
@@ -109,7 +109,7 @@ public class Parser {
 
         case '$': { // possibly dollar quote start or a native placeholder
           int end = Parser.parseDollarQuotes(aChars, i);
-          if (end == i && (processParameters && placeholderStyleIsAccepted(placeholderStyle, PlaceholderStyle.NATIVE) && sqlCommandTypeSupportsParameters(currentCommandType))) {
+          if (end == i && (processParameters && placeholderStyleIsAccepted(placeholderStyles, PlaceholderStyles.NATIVE) && sqlCommandTypeSupportsParameters(currentCommandType))) {
             // look for a native placeholder instead.
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -211,7 +211,7 @@ public class Parser {
           break;
 
         case ':': // possibly named placerholder start'
-          if (processParameters && placeholderStyleIsAccepted(placeholderStyle, PlaceholderStyle.NAMED) && sqlCommandTypeSupportsParameters(currentCommandType)) {
+          if (processParameters && placeholderStyleIsAccepted(placeholderStyles, PlaceholderStyles.NAMED) && sqlCommandTypeSupportsParameters(currentCommandType)) {
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
             int end = Parser.parseNamedPlaceholder(aChars, i);
@@ -1541,8 +1541,9 @@ public class Parser {
     return i;
   }
 
-  private static boolean placeholderStyleIsAccepted(PlaceholderStyle setting, PlaceholderStyle placeholderStyle ) {
-    return setting == PlaceholderStyle.ANY || setting == placeholderStyle;
+  private static boolean placeholderStyleIsAccepted(
+      PlaceholderStyles setting, PlaceholderStyles placeholderStyles) {
+    return setting == PlaceholderStyles.ANY || setting == placeholderStyles;
   }
 
   private static boolean sqlCommandTypeSupportsParameters(@NonNull SqlCommandType sqlCommandType) {

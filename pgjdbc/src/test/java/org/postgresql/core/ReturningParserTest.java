@@ -5,7 +5,7 @@
 
 package org.postgresql.core;
 
-import org.postgresql.jdbc.PlaceholderStyle;
+import org.postgresql.jdbc.PlaceholderStyles;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -54,7 +54,7 @@ public class ReturningParserTest {
     String query =
         "insert into\"prep\"(a, " + prefix + columnName + suffix + ")values(1,2)" + prefix
             + returning + suffix;
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyles.NONE);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
 
     boolean expectedReturning = this.returning.equalsIgnoreCase("returning")

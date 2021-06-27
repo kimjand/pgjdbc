@@ -30,7 +30,7 @@ public class NamedParametersTest extends BaseTest4 {
   @Override
   protected void updateProperties(Properties props) {
     super.updateProperties(props);
-    PGProperty.PLACEHOLDER_STYLES.set(props, PlaceholderStyle.NAMED.value());
+    PGProperty.PLACEHOLDER_STYLES.set(props, PlaceholderStyles.NAMED.value());
   }
 
   @Test

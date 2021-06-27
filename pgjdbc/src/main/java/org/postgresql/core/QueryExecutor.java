@@ -12,7 +12,7 @@ import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
-import org.postgresql.jdbc.PlaceholderStyle;
+import org.postgresql.jdbc.PlaceholderStyles;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 
@@ -556,7 +556,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    */
   void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor);
 
-  void setPlaceholderStyle(PlaceholderStyle placeholderStyle);
+  void setPlaceholderStyle(PlaceholderStyles placeholderStyles);
 
-  PlaceholderStyle getPlacerholderStyle();
+  PlaceholderStyles getPlacerholderStyle();
 }
