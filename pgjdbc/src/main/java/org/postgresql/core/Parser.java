@@ -121,8 +121,8 @@ public class Parser {
               final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), ParameterContext.BindStyle.NATIVE, "", bindName);
               nativeSql.append("$").append(bindIndex);
 
-              fragmentStart = end + 1;
-              i = fragmentStart;
+              i = end;
+              fragmentStart = i + 1;
             } else {
               fragmentStart = i;
             }

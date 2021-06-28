@@ -85,6 +85,12 @@ public class CompositeQueryParseTest {
   }
 
   @Test
+  public void testCompositeWithNativeBinds() {
+    assertEquals("select $1;/*cut*/\n select $1", reparse("select $1; select $1", true, true, true));
+    assertEquals("select $1;/*cut*/\n select $1, $2", reparse("select $1; select $1, $2", true, true, true));
+  }
+
+  @Test
   public void testTrailingSemicolon() {
     assertEquals("select 1", reparse("select 1;", true, false, true));
   }
@@ -208,7 +214,7 @@ public class CompositeQueryParseTest {
       boolean splitStatements) {
     try {
       return toString(
-          Parser.parseJdbcSql(query, standardConformingStrings, withParameters, splitStatements, false, PlaceholderStyles.NONE));
+          Parser.parseJdbcSql(query, standardConformingStrings, withParameters, splitStatements, false, PlaceholderStyles.ANY));
     } catch (SQLException e) {
       throw new IllegalStateException("Parser.parseJdbcSql: " + e.getMessage(), e);
     }
