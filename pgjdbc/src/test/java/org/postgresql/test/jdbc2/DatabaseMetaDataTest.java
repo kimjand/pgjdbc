@@ -73,6 +73,7 @@ public class DatabaseMetaDataTest {
     }
     TestUtil.createTable(con, "metadatatest",
         "id int4, name text, updated timestamptz, colour text, quest text");
+    TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
     TestUtil.createTable(con, "sercoltest", "a int, b serial, c bigserial");
@@ -85,6 +86,15 @@ public class DatabaseMetaDataTest {
     TestUtil.dropType(con, "_custom");
     TestUtil.createCompositeType(con, "custom", "i int", false);
     TestUtil.createCompositeType(con, "_custom", "f float", false);
+
+    // create a table and multiple comments on it
+    TestUtil.createTable(con, "duplicate", "x text");
+    TestUtil.execute("comment on table duplicate is 'duplicate table'", con);
+    TestUtil.execute("create or replace function bar() returns integer language sql as $$ select 1 $$", con);
+    TestUtil.execute("comment on function bar() is 'bar function'", con);
+    try (Connection conPriv = TestUtil.openPrivilegedDB()) {
+      TestUtil.execute("update pg_description set objoid = 'duplicate'::regclass where objoid = 'bar'::regproc", conPriv);
+    }
 
     // 8.2 does not support arrays of composite types
     TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
@@ -110,6 +120,12 @@ public class DatabaseMetaDataTest {
           "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
     }
 
+    // create a custom `&` operator, which caused failure with `&` usage in getIndexInfo()
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION f6(numeric, integer) returns integer as 'BEGIN return $1::integer & $2;END;' language plpgsql immutable;");
+    stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
+    stmt.execute("CREATE OPERATOR & (LEFTARG = numeric, RIGHTARG = integer, PROCEDURE = f6)");
+
     TestUtil.createDomain(con, "nndom", "int not null");
     TestUtil.createDomain(con, "varbit2", "varbit(3)");
     TestUtil.createDomain(con, "float83", "numeric(8,3)");
@@ -124,12 +140,15 @@ public class DatabaseMetaDataTest {
     // metadatatest table's type
     Statement stmt = con.createStatement();
     stmt.execute("DROP FUNCTION f4(int)");
+    TestUtil.execute("drop function bar()", con);
+    TestUtil.dropTable(con, "duplicate");
 
     TestUtil.dropView(con, "viewtest");
     TestUtil.dropTable(con, "metadatatest");
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
+    TestUtil.dropTable(con, "precision_test");
     TestUtil.dropTable(con, "\"a\\\"");
     TestUtil.dropTable(con, "\"a'\"");
     TestUtil.dropTable(con, "arraytable");
@@ -141,6 +160,8 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f1(int, varchar)");
     stmt.execute("DROP FUNCTION f2(int, varchar)");
     stmt.execute("DROP FUNCTION f3(int, varchar)");
+    stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
+    stmt.execute("DROP FUNCTION f6(numeric, integer)");
     TestUtil.dropTable(con, "domaintable");
     TestUtil.dropDomain(con, "nndom");
     TestUtil.dropDomain(con, "varbit2");
@@ -493,6 +514,16 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(con1, "people");
     TestUtil.dropTable(con1, "policy");
     TestUtil.closeDB(con1);
+  }
+
+  @Test
+  public void testNumericPrecision() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getColumns(null, "public", "precision_test", "%");
+    assertTrue("It should have a row for the first column", rs.next());
+    assertEquals("The column size should be zero", 0, rs.getInt("COLUMN_SIZE"));
+    assertFalse("It should have a single column", rs.next());
   }
 
   @Test
