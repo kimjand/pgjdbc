@@ -99,7 +99,7 @@ public class V3ParameterListTests {
     NativeQuery nativeQuery;
 
     query = "SELECT :a+:a+:a+:b+:c+:b+:c AS a";
-    qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyles.ANY);
+    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyles.ANY);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
 
@@ -113,7 +113,7 @@ public class V3ParameterListTests {
     assertEquals(query, nativeQuery.toString(parameters));
 
     query = "select :ASTR||:bStr||:c AS \nteststr";
-    qry = Parser.parseJdbcSql(query, true, true, true, false, PlaceholderStyles.ANY);
+    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyles.ANY);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
 
