@@ -42,6 +42,7 @@ public class Parser {
    * @param withParameters            whether to replace ?, ? with $1, $2, etc
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
+   * @param quoteReturningIdentifiers whether to quote identifiers returned using returning clause
    * @param placeholderStyles          whether non-standard placeholder are allowed or not
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
    * @return list of native queries
@@ -49,7 +50,9 @@ public class Parser {
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
       boolean withParameters, boolean splitStatements,
-      boolean isBatchedReWriteConfigured, PlaceholderStyles placeholderStyles,
+      boolean isBatchedReWriteConfigured,
+      boolean quoteReturningIdentifiers,
+      PlaceholderStyles placeholderStyles,
       String... returningColumnNames) throws SQLException {
     if (!withParameters && !splitStatements
         && returningColumnNames != null && returningColumnNames.length == 0) {
@@ -168,7 +171,7 @@ public class Parser {
             }
             fragmentStart = i + 1;
             if (nativeSql.length() > 0) {
-              if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent)) {
+              if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
                 isReturningPresent = true;
               }
 
@@ -351,7 +354,7 @@ public class Parser {
       return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
     }
 
-    if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent)) {
+    if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
       isReturningPresent = true;
     }
 
@@ -414,7 +417,7 @@ public class Parser {
   }
 
   private static boolean addReturning(StringBuilder nativeSql, SqlCommandType currentCommandType,
-      String[] returningColumnNames, boolean isReturningPresent) throws SQLException {
+      String[] returningColumnNames, boolean isReturningPresent, boolean quoteReturningIdentifiers) throws SQLException {
     if (isReturningPresent || returningColumnNames.length == 0) {
       return false;
     }
@@ -435,7 +438,14 @@ public class Parser {
       if (col > 0) {
         nativeSql.append(", ");
       }
-      Utils.escapeIdentifier(nativeSql, columnName);
+      /*
+      If the client quotes identifiers then doing so again would create an error
+       */
+      if (quoteReturningIdentifiers) {
+        Utils.escapeIdentifier(nativeSql, columnName);
+      } else {
+        nativeSql.append( columnName );
+      }
     }
     return true;
   }

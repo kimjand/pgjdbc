@@ -16,16 +16,21 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.TextOutputCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
-public class GSSCallbackHandler implements CallbackHandler {
+/*
+  provide a more or less redundant callback handler
+*/
+
+class GSSCallbackHandler implements CallbackHandler {
 
   private final String user;
-  private final @Nullable String password;
+  private final char @Nullable [] password;
 
-  public GSSCallbackHandler(String user, @Nullable String password) {
+  GSSCallbackHandler(String user, char @Nullable [] password) {
     this.user = user;
     this.password = password;
   }
 
+  @Override
   public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
     for (Callback callback : callbacks) {
       if (callback instanceof TextOutputCallback) {
@@ -51,11 +56,10 @@ public class GSSCallbackHandler implements CallbackHandler {
         if (password == null) {
           throw new IOException("No cached kerberos ticket found and no password supplied.");
         }
-        pc.setPassword(password.toCharArray());
+        pc.setPassword(password);
       } else {
         throw new UnsupportedCallbackException(callback, "Unrecognized Callback");
       }
     }
   }
-
 }

@@ -203,8 +203,6 @@ public class PgConnection implements BaseConnection {
   //
   @SuppressWarnings({"method.invocation.invalid", "argument.type.incompatible"})
   public PgConnection(HostSpec[] hostSpecs,
-                      String user,
-                      String database,
                       Properties info,
                       String url) throws SQLException {
     // Print out the driver version number
@@ -222,7 +220,7 @@ public class PgConnection implements BaseConnection {
     }
 
     // Now make the initial connection and set up local state
-    this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, user, database, info);
+    this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, info);
 
     // WARNING for unsupported servers (8.1 and lower are not supported)
     if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v8_2)) {
@@ -651,14 +649,14 @@ public class PgConnection implements BaseConnection {
           PGBinaryObject binObj = (PGBinaryObject) obj;
           binObj.setByteValue(byteValue, 0);
         } else {
-          obj.setValue(castNonNull(value));
+          obj.setValue(value);
         }
       } else {
         // If className is null, then the type is unknown.
         // so return a PGobject with the type set, and the value set
         obj = new PGobject();
         obj.setType(type);
-        obj.setValue(castNonNull(value));
+        obj.setValue(value);
       }
 
       return obj;
@@ -733,6 +731,7 @@ public class PgConnection implements BaseConnection {
   /**
    * <B>Note:</B> even though {@code Statement} is automatically closed when it is garbage
    * collected, it is better to close it explicitly to lower resource consumption.
+   * The spec says that calling close on a closed connection is a no-op.
    *
    * {@inheritDoc}
    */
@@ -741,6 +740,9 @@ public class PgConnection implements BaseConnection {
     if (queryExecutor == null) {
       // This might happen in case constructor throws an exception (e.g. host being not available).
       // When that happens the connection is still registered in the finalizer queue, so it gets finalized
+      return;
+    }
+    if (queryExecutor.isClosed()) {
       return;
     }
     releaseTimer();
