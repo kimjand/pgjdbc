@@ -1635,7 +1635,6 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return PlaceholderStyles.of(castNonNull(PGProperty.PLACEHOLDER_STYLES.get(properties)));
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Override
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
