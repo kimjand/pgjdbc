@@ -214,7 +214,7 @@ public class CompositeQueryParseTest {
       boolean splitStatements) {
     try {
       return toString(
-          Parser.parseJdbcSql(query, standardConformingStrings, withParameters, splitStatements, false, true, PlaceholderStyles.NONE));
+          Parser.parseJdbcSql(query, standardConformingStrings, withParameters, splitStatements, false, true, PlaceholderStyles.ANY));
     } catch (SQLException e) {
       throw new IllegalStateException("Parser.parseJdbcSql: " + e.getMessage(), e);
     }

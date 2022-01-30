@@ -312,6 +312,7 @@ public class ParserTest {
 
     // Native Placeholders must be all positive numbers, greater than 0
     strSQL = "SELECT $0";
+    nativeQuery = Parser.parseJdbcSql(strSQL, true, true, true, false, true, PlaceholderStyles.ANY).get(0);
     assertEquals(strSQL, nativeQuery.nativeSql);
     assertEquals(0, nativeQuery.parameterCtx.placeholderCount());
     assertEquals(0, nativeQuery.parameterCtx.nativeParameterCount());
