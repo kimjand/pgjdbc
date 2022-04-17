@@ -49,6 +49,7 @@ import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Blob;
@@ -1907,6 +1908,11 @@ class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
   @Override
   public void setNull(String parameterName, int sqlType) throws SQLException {
     this.setNull(preparedParameters.getIndex(parameterName), sqlType);
+  }
+
+  @Override
+  public void setURL(String parameterName, URL x) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setURL(String,URL)");
   }
 
   @Override

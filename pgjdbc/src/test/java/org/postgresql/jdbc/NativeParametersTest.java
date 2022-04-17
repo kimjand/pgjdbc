@@ -35,6 +35,11 @@ public class NativeParametersTest extends BaseTest4 {
 
   @Test
   public void dontMix() throws Exception {
+    TestUtil.closeDB(con);
+    Properties props = new Properties();
+    PGProperty.PLACEHOLDER_STYLES.set(props, PlaceholderStyles.ANY.value());
+    con = TestUtil.openDB(props);
+
     try {
       con.prepareStatement("select ?+$1");
       fail("Should throw a SQLException");
@@ -54,6 +59,17 @@ public class NativeParametersTest extends BaseTest4 {
       assertEquals(
           "Multiple bind styles cannot be combined. Saw NATIVE first but attempting to also use: "
               + "POSITIONAL",
+          ex.getMessage());
+    }
+
+    try {
+      con.prepareStatement("select $1+:test");
+      fail("Should throw a SQLException");
+    } catch (SQLException ex) {
+      // ignore
+      assertEquals(
+          "Multiple bind styles cannot be combined. Saw NATIVE first but attempting to also use: "
+              + "NAMED",
           ex.getMessage());
     }
   }
@@ -94,6 +110,21 @@ public class NativeParametersTest extends BaseTest4 {
               + "The following parameters where captured: [$2]\n"
               + "Native parameters must form a contiguous set of integers, starting from 1.",
           ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testMultiDigit() throws Exception {
+    StringBuilder sb = new StringBuilder();
+    sb.append("SELECT $1");
+    for ( int i = 2; i < 10002; i++) {
+      sb.append(",$").append(i);
+      if (i % 10 == 0) {
+        final String sql = sb.toString();
+        try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+          Assert.assertEquals(i, testStmt.getParameterNames().size());
+        }
+      }
     }
   }
 

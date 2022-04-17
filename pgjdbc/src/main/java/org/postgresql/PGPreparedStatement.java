@@ -38,6 +38,14 @@ public interface PGPreparedStatement extends PGStatement, PreparedStatement {
    * @param parameterName the name of the parameter to be bound
    * @param x             the parameter value
    * @throws SQLException if something goes wrong
+   * @see java.sql.PreparedStatement#setURL(int, java.net.URL)
+   */
+  void setURL(String parameterName, java.net.URL x) throws SQLException;
+
+  /**
+   * @param parameterName the name of the parameter to be bound
+   * @param x             the parameter value
+   * @throws SQLException if something goes wrong
    * @see java.sql.PreparedStatement#setBoolean(int, boolean)
    */
   void setBoolean(String parameterName, boolean x) throws SQLException;

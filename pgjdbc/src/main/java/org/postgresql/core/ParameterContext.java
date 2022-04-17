@@ -18,8 +18,9 @@ import java.util.List;
  * {@link org.postgresql.core.Parser} stores information about placeholder occurrences in
  * ParameterContext. In case of standard JDBC placeholders {@code '?'} the position in the SQL text
  * is recorded. For named placeholders {@code ":paramName"} the name is recorded as well as the
- * position. {@code PgPreparedStatement} can then use the name to lookup the parameter corresponding
- * index. These values are also used by toString() methods to provide a human readable
+ * position. {@code PgPreparedStatement} can then use the name to look up the parameter corresponding
+ * index. Native placeholders of the form {@code "$number"} are also supported.
+ * These recorded values are also used by toString() methods to provide a human-readable
  * representation of the SQL text.
  */
 public class ParameterContext {
@@ -142,17 +143,6 @@ public class ParameterContext {
   }
 
   /**
-   * @param i 0-indexed position in the order of first appearance
-   * @return The name of the placeholder at this backend parameter position, including prefix.
-   */
-  public String getPlaceholderNameIncludingPrefix(@NonNegative int i) {
-    if (placeholderNames == null) {
-      throw new IllegalStateException("Call hasNamedParameters() first.");
-    }
-    return placeholderNames.get(i).prefixedName;
-  }
-
-  /**
    * @param i 0-indexed position in the order of appearance
    * @return The position of the placeholder in the SQL text for this placeholder index
    */
@@ -208,7 +198,7 @@ public class ParameterContext {
     final PlaceholderName placeholderName = new PlaceholderName(placeholderPrefix, bindName);
     int bindIndex;
 
-    if ( bindStyle == BindStyle.NAMED) {
+    if ( bindStyle == BindStyle.NAMED ) {
       bindIndex = placeholderNames.indexOf(placeholderName);
       if (bindIndex == -1) {
         bindIndex = placeholderNames.size();
@@ -222,7 +212,7 @@ public class ParameterContext {
       placeholderNames.set(bindIndex, placeholderName);
     } else {
       throw new IllegalArgumentException(
-          "bindStyle " + bindStyle + " is not not a valid option for addNamedParameter");
+          "bindStyle " + bindStyle + " is not a valid option for addNamedParameter");
     }
 
     if (placeholderAtPosition == null) {

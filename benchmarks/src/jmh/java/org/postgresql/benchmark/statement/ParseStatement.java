@@ -6,6 +6,7 @@
 package org.postgresql.benchmark.statement;
 
 import org.postgresql.PGPreparedStatement;
+import org.postgresql.core.ParameterContext;
 import org.postgresql.util.ConnectionUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -49,9 +50,9 @@ import java.util.concurrent.TimeUnit;
 public class ParseStatement {
   @Param({"false"})
   public boolean unique;
-  @Param({"false", "true"})
-  public boolean named;
-  @Param({"0", "1", "10", "20", "100", "1000"})
+  @Param({"POSITIONAL", "NAMED", "NATIVE"})
+  public ParameterContext.BindStyle bindStyle;
+  @Param({"0", "1", "5", "10", "20", "50", "100", "1000", "10000"})
   private int bindCount;
   private Connection connection;
 
@@ -81,10 +82,21 @@ public class ParseStatement {
       if (i > 0) {
         sb.append(',');
       }
-      if (named) {
-        sb.append(":p_").append(i);
-      } else {
-        sb.append('?');
+      switch (bindStyle) {
+        case POSITIONAL:
+          sb.append('?');
+          break;
+
+        case NAMED:
+          sb.append(":p_").append(i);
+          break;
+
+        case NATIVE:
+          sb.append("$").append(i + 1);
+          break;
+
+        default:
+          throw new IllegalArgumentException("Unknown bindStyle: " + bindStyle);
       }
     }
     sql = sb.toString();
@@ -103,10 +115,21 @@ public class ParseStatement {
     }
     PGPreparedStatement ps = connection.prepareStatement(sql).unwrap(PGPreparedStatement.class);
     for (int i = 1; i <= bindCount; i++) {
-      if (named) {
-        ps.setInt("p_" + (i - 1), i);
-      } else {
-        ps.setInt(i, i);
+      switch (bindStyle) {
+        case POSITIONAL:
+          ps.setInt(i, i);
+          break;
+
+        case NAMED:
+          ps.setInt("p_" + (i - 1), i);
+          break;
+
+        case NATIVE:
+          ps.setInt("$_" + i, i);
+          break;
+
+        default:
+          throw new IllegalArgumentException("Unknown bindStyle: " + bindStyle);
       }
     }
     ResultSet rs = ps.executeQuery();

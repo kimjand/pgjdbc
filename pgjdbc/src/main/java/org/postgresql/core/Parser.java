@@ -12,7 +12,6 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
@@ -111,7 +110,7 @@ public class Parser {
 
         case '$': { // possibly dollar quote start or a native placeholder
           int end = Parser.parseDollarQuotes(aChars, i);
-          if (end == i && (processParameters && placeholderStyleIsAccepted(placeholderStyles, PlaceholderStyles.NATIVE) && sqlCommandTypeSupportsParameters(currentCommandType))) {
+          if (end == i && (processParameters && placeholderStyleIsAccepted(placeholderStyles, PlaceholderStyles.NATIVE) && currentCommandType.supportsParameters())) {
             // look for a native placeholder instead.
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -213,7 +212,7 @@ public class Parser {
           break;
 
         case ':': // possibly named placerholder start'
-          if (processParameters && placeholderStyleIsAccepted(placeholderStyles, PlaceholderStyles.NAMED) && sqlCommandTypeSupportsParameters(currentCommandType)) {
+          if (processParameters && placeholderStyleIsAccepted(placeholderStyles, PlaceholderStyles.NAMED) && currentCommandType.supportsParameters()) {
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
             int end = Parser.parseNamedPlaceholder(aChars, i);
@@ -585,7 +584,7 @@ public class Parser {
   }
 
   /**
-   * Test if the colon character ({@code :}) at the given offset starts a named placeholder and
+   * Test if the dollar character ({@code $}) at the given offset starts a native placeholder and
    * return the offset of the ending parameter character.
    *
    * @param query  query
@@ -1390,7 +1389,7 @@ public class Parser {
             newsql.append(sql, i0, i - i0 + 1);
             break;
           } else if (c == '"') {
-            // start of a identifier?
+            // start of an identifier?
             int i0 = i;
             i = parseDoubleQuotes(sql, i);
             checkParsePosition(i, len, i0, sql,
@@ -1553,24 +1552,6 @@ public class Parser {
   private static boolean placeholderStyleIsAccepted(
       PlaceholderStyles setting, PlaceholderStyles placeholderStyles) {
     return setting == PlaceholderStyles.ANY || setting == placeholderStyles;
-  }
-
-  private static boolean sqlCommandTypeSupportsParameters(@NonNull SqlCommandType sqlCommandType) {
-    switch (sqlCommandType) {
-      case INSERT:
-      case UPDATE:
-      case DELETE:
-      case SELECT:
-      case WITH:
-        return true;
-
-      case BLANK:
-      case MOVE:
-      case CREATE:
-      case ALTER:
-      default:
-        return false;
-    }
   }
 
   private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};

@@ -6,10 +6,13 @@
 package org.postgresql.core;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.PlaceholderStyles;
+import org.postgresql.util.PSQLException;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -43,6 +46,14 @@ public class ParserTest {
     assertTrue("Failed to correctly parse lower case command.", Parser.parseDeleteKeyword(command, 0));
     "Delete".getChars(0, 6, command, 0);
     assertTrue("Failed to correctly parse mixed case command.", Parser.parseDeleteKeyword(command, 0));
+  }
+
+  @Test
+  public void testDoubleQuestionmark() throws SQLException {
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(
+            "SELECT ??", true, true, true, true, true, PlaceholderStyles.NONE);
+    assertEquals("SELECT ?", qry.get(0).nativeSql);
   }
 
   /**
@@ -99,6 +110,14 @@ public class ParserTest {
     assertTrue("Failed to correctly parse lower case command.", Parser.parseWithKeyword(command, 0));
   }
 
+  @Test
+  public void testReplaceProcessingDisabled() throws Exception {
+    final String sql = "testString";
+    assertSame(
+        "The output string must be exactly the input string when replaceProcessingEnabled = false",
+        sql, Parser.replaceProcessing(sql, false, false));
+  }
+
   /**
    * Test SELECT command parsing.
    */
@@ -115,6 +134,12 @@ public class ParserTest {
     assertTrue("Failed to correctly parse mixed case command.", Parser.parseSelectKeyword(command, 0));
     "select".getChars(0, 6, command, 0);
     assertTrue("Failed to correctly parse lower case command.", Parser.parseSelectKeyword(command, 0));
+  }
+
+  @Test
+  public void testSyntaxError() throws Exception {
+    final String sql = "SELECT a FROM t WHERE (1 > 0)) ORDER BY a";
+    assertEquals("extracted from comments in replaceProcessingreplaceProcessing", sql, Parser.replaceProcessing(sql, true, false));
   }
 
   @Test
@@ -162,6 +187,23 @@ public class ParserTest {
   @Test
   public void testUnterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
+  }
+
+  @Test
+  public void testUnterminatedDollar() throws Exception {
+    try {
+      Parser.replaceProcessing("$$", true, false);
+      fail("Nothing was thrown!");
+    } catch (PSQLException e) {
+      assertEquals("Unterminated dollar quote started at position 0 in SQL $$. Expected terminating $$", e.getMessage());
+    }
+
+    try {
+      Parser.replaceProcessing("$$$", true, false);
+      fail("Nothing was thrown!");
+    } catch (PSQLException e) {
+      assertEquals("Unterminated dollar quote started at position 0 in SQL $$$. Expected terminating $$", e.getMessage());
+    }
   }
 
   @Test

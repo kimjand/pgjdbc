@@ -17,6 +17,7 @@ import org.postgresql.test.jdbc2.BatchExecuteTest;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -35,6 +36,11 @@ public class NamedParametersTest extends BaseTest4 {
 
   @Test
   public void dontMix() throws Exception {
+    TestUtil.closeDB(con);
+    Properties props = new Properties();
+    PGProperty.PLACEHOLDER_STYLES.set(props, PlaceholderStyles.ANY.value());
+    con = TestUtil.openDB(props);
+
     try {
       con.prepareStatement("select ?+:dummy");
       fail("Should throw a SQLException");
@@ -55,6 +61,32 @@ public class NamedParametersTest extends BaseTest4 {
           "Multiple bind styles cannot be combined. Saw NAMED first but attempting to also use: "
               + "POSITIONAL",
           ex.getMessage());
+    }
+
+    try {
+      con.prepareStatement("select :test+$1");
+      fail("Should throw a SQLException");
+    } catch (SQLException ex) {
+      // ignore
+      assertEquals(
+          "Multiple bind styles cannot be combined. Saw NAMED first but attempting to also use: "
+              + "NATIVE",
+          ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testMultiDigit() throws Exception {
+    StringBuilder sb = new StringBuilder();
+    sb.append("SELECT :p1");
+    for ( int i = 2; i < 10002; i++) {
+      sb.append(",:p").append(i);
+      if (i % 10 == 0) {
+        final String sql = sb.toString();
+        try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+          Assert.assertEquals(i, testStmt.getParameterNames().size());
+        }
+      }
     }
   }
 
@@ -291,6 +323,26 @@ public class NamedParametersTest extends BaseTest4 {
     } finally {
       TestUtil.closeQuietly(rs);
       TestUtil.closeQuietly(pstmt);
+    }
+  }
+
+  @Test
+  public void testPGPreparedStatementSetters() throws NoSuchMethodException {
+    // Make sure PGPreparedStatement declares the same setXXX-methods as PreparedStatement does:
+    for (Method methodFromPreparedStatement : PreparedStatement.class.getDeclaredMethods()) {
+      if (methodFromPreparedStatement.getName().startsWith("set")) {
+        final Class<?>[] parameterTypesFromPreparedStatement = methodFromPreparedStatement.getParameterTypes();
+
+        // Instead of int we need to see a setter method with String as the first parameter in the signature:
+        assertEquals("", int.class, parameterTypesFromPreparedStatement[0]);
+        Class<?>[] wantedParameterTypes = new Class[parameterTypesFromPreparedStatement.length];
+        wantedParameterTypes[0] = String.class;
+        System.arraycopy(parameterTypesFromPreparedStatement, 1, wantedParameterTypes, 1, wantedParameterTypes.length - 1);
+
+        // We will get a NoSuchMethodException here if the method is missing
+        //noinspection ResultOfMethodCallIgnored
+        PGPreparedStatement.class.getDeclaredMethod(methodFromPreparedStatement.getName(), wantedParameterTypes);
+      }
     }
   }
 }
