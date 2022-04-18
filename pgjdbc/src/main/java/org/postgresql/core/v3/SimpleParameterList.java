@@ -532,7 +532,7 @@ class SimpleParameterList implements V3ParameterList {
   public List<String> getParameterNames() throws PSQLException {
     if (this.paramNames == null) {
       throw new PSQLException(
-          GT.tr("The ParameterList was not created with named parameters."),
+          GT.tr("No parameter names are available, you need to call hasParameterNames to verify the presence of any names.\nPerhaps you need to enable support for named placeholders?"),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
     return this.paramNames.stream().map(f -> f.name).collect(Collectors.toList());

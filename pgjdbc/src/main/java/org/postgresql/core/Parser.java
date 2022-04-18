@@ -313,7 +313,7 @@ public class Parser {
       }
     }
 
-    if (paramCtx.hasParameters() && paramCtx.getBindStyle() == ParameterContext.BindStyle.NATIVE) {
+    if (paramCtx.hasNamedParameters() && paramCtx.getBindStyle() == ParameterContext.BindStyle.NATIVE) {
       // We need to make sure we have a sane set of native placeholders.
       // The order of appearance is not relevant here, the user has already specified the actual native positions.
       // The names must conform to the pattern $1..n and appear in increasing order.
@@ -323,10 +323,11 @@ public class Parser {
       for (int i = 0; i < placeholderNames.size(); i++ ) {
         final ParameterContext.PlaceholderName placeholderName = placeholderNames.get(i);
         if (placeholderName == ParameterContext.PlaceholderName.UNINITIALIZED) {
-          throw new SQLException(
-              "Native parameter $" + (i + 1) + " was not found.\nThe following parameters where captured: "
-                  + placeholderNames.stream().filter(f -> f != ParameterContext.PlaceholderName.UNINITIALIZED).collect(Collectors.toList()) + "\n"
-                  + "Native parameters must form a contiguous set of integers, starting from 1.");
+          throw new PSQLException(
+              GT.tr("Native parameter ${0} was not found.\nThe following parameters where captured: {1}\nNative parameters must form a contiguous set of integers, starting from 1.",
+                  (i + 1),
+                  placeholderNames.stream().filter(f -> f != ParameterContext.PlaceholderName.UNINITIALIZED).collect(Collectors.toList())),
+              PSQLState.INVALID_PARAMETER_VALUE);
         }
       }
     }

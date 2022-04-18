@@ -120,7 +120,9 @@ public class NativeParametersTest extends BaseTest4 {
     try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
       Assert.assertFalse(testStmt.hasParameterNames());
       final PSQLException psqlException = Assert.assertThrows(PSQLException.class, testStmt::getParameterNames);
-      Assert.assertEquals("The ParameterList was not created with named parameters.", psqlException.getMessage());
+      Assert.assertEquals("No parameter names are available, you need to call hasParameterNames "
+          + "to verify the presence of any names.\n"
+          + "Perhaps you need to enable support for named placeholders?", psqlException.getMessage());
     }
 
     sql = "SELECT $1";

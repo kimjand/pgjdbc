@@ -131,7 +131,7 @@ public class ParameterContext {
 
   public BindStyle getBindStyle() {
     if (bindStyle == null) {
-      throw new IllegalStateException("Call hasNamedParameters() first.");
+      throw new IllegalStateException("No bindStyle was registered, did you call hasNamedParameters() first?");
     }
     return this.bindStyle;
   }
@@ -142,7 +142,7 @@ public class ParameterContext {
    */
   public String getPlaceholderName(@NonNegative int i) {
     if (placeholderNames == null) {
-      throw new IllegalStateException("Call hasNamedParameters() first.");
+      throw new IllegalStateException("No placeholder names are available, did you call hasParameters() first?");
     }
     return placeholderNames.get(i).name;
   }
@@ -153,7 +153,7 @@ public class ParameterContext {
    */
   public int getPlaceholderPosition(@NonNegative int i) {
     if (placeholderPositions == null) {
-      throw new IllegalStateException("Call hasParameters() first.");
+      throw new IllegalStateException("No placeholder occurrences are available, did you call hasParameters() first?");
     }
     return placeholderPositions.get(i);
   }
@@ -164,7 +164,7 @@ public class ParameterContext {
    */
   public int getPlaceholderAtPosition(@NonNegative int i) {
     if (placeholderAtPosition == null || placeholderAtPosition.isEmpty()) {
-      throw new IllegalStateException("Call hasParameters() first.");
+      throw new IllegalStateException("No placeholder positions are available, did you call hasParameters() first?");
     }
     return placeholderAtPosition.get(i);
   }
