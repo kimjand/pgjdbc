@@ -12,7 +12,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * {@link org.postgresql.core.Parser} stores information about placeholder occurrences in
@@ -92,6 +94,7 @@ public class ParameterContext {
   private @Nullable BindStyle bindStyle = null;
   private @Nullable List<Integer> placeholderPositions = null;
   private @Nullable List<PlaceholderName> placeholderNames = null;
+  private @Nullable Map<PlaceholderName, Integer> placeholderNameMap = null;
   private @Nullable List<Integer> placeholderAtPosition = null;
 
   /**
@@ -199,11 +202,14 @@ public class ParameterContext {
     int bindIndex;
 
     if ( bindStyle == BindStyle.NAMED ) {
-      bindIndex = placeholderNames.indexOf(placeholderName);
-      if (bindIndex == -1) {
-        bindIndex = placeholderNames.size();
-        placeholderNames.add(placeholderName);
+      if (placeholderNameMap == null) {
+        placeholderNameMap = new HashMap<>();
       }
+      bindIndex = placeholderNameMap.computeIfAbsent(placeholderName, f -> {
+        int newIndex = placeholderNames.size();
+        placeholderNames.add(placeholderName);
+        return newIndex;
+      });
     } else if ( bindStyle == BindStyle.NATIVE ) {
       bindIndex = Integer.parseInt(bindName.substring(1)) - 1;
       while ( placeholderNames.size() <= bindIndex ) {

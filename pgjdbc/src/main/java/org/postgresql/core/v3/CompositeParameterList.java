@@ -184,6 +184,11 @@ class CompositeParameterList implements V3ParameterList {
   }
 
   @Override
+  public boolean hasParameterNames() {
+    throw new RuntimeException("This should not be called");
+  }
+
+  @Override
   public List<String> getParameterNames() throws SQLException {
     throw new RuntimeException("This should not be called");
   }

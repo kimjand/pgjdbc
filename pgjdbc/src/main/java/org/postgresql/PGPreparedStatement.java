@@ -481,6 +481,12 @@ public interface PGPreparedStatement extends PGStatement, PreparedStatement {
   }
 
   /**
+   * @return returns true if a ParameterList exists, and it was created using a named placeholder strategy
+   * @throws SQLException if something goes wrong
+   */
+  boolean hasParameterNames() throws SQLException;
+
+  /**
    * @return a List of placeholder names, corresponding to the first occurrence of each placeholder
    * @throws SQLException if something goes wrong
    */

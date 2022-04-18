@@ -14,12 +14,15 @@ import org.postgresql.core.ParameterContext;
 import org.postgresql.core.Parser;
 import org.postgresql.jdbc.PlaceholderStyles;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Test cases to make sure the parameterlist implementation works as expected.
@@ -171,5 +174,31 @@ public class V3ParameterListTests {
     assertEquals(
         "Expected string representation of values does not match outcome.",
         "<[1 ,2 ,3 ,4 ,5 ,6 ,7 ,8]>", s1SPL.toString());
+  }
+
+  @Test
+  public void testHasNamedParameters() throws SQLException {
+    String query;
+    List<NativeQuery> qry;
+    NativeQuery nativeQuery;
+
+    query = "SELECT ?";
+    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyles.ANY);
+    nativeQuery = qry.get(0);
+    Assert.assertFalse(nativeQuery.parameterCtx.hasNamedParameters());
+    IllegalStateException illegalStateException = assertThrows(IllegalStateException.class, nativeQuery.parameterCtx::getPlaceholderNames);
+    Assert.assertEquals("Call hasNamedParameters() first.",illegalStateException.getMessage());
+
+    query = "SELECT :a";
+    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyles.ANY);
+    nativeQuery = qry.get(0);
+    Assert.assertTrue(nativeQuery.parameterCtx.hasNamedParameters());
+    Assert.assertEquals(Collections.singletonList("a"),nativeQuery.parameterCtx.getPlaceholderNames().stream().map(f -> f.name).collect(Collectors.toList()));
+
+    query = "SELECT $1";
+    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyles.ANY);
+    nativeQuery = qry.get(0);
+    Assert.assertTrue(nativeQuery.parameterCtx.hasNamedParameters());
+    Assert.assertEquals(Collections.singletonList("$1"),nativeQuery.parameterCtx.getPlaceholderNames().stream().map(f -> f.name).collect(Collectors.toList()));
   }
 }

@@ -213,5 +213,7 @@ public interface ParameterList {
 
   int getIndex(String parameterName) throws SQLException;
 
+  boolean hasParameterNames();
+
   List<String> getParameterNames() throws SQLException;
 }

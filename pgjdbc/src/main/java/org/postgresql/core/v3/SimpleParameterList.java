@@ -181,12 +181,14 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
-  public void setBytea(@Positive int index, byte[] data, int offset, @NonNegative int length) throws SQLException {
+  public void setBytea(@Positive int index, byte[] data, int offset, @NonNegative int length)
+      throws SQLException {
     bind(index, new StreamWrapper(data, offset, length), Oid.BYTEA, BINARY);
   }
 
   @Override
-  public void setBytea(@Positive int index, InputStream stream, @NonNegative int length) throws SQLException {
+  public void setBytea(@Positive int index, InputStream stream, @NonNegative int length)
+      throws SQLException {
     bind(index, new StreamWrapper(stream, length), Oid.BYTEA, BINARY);
   }
 
@@ -522,6 +524,11 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
+  public boolean hasParameterNames() {
+    return this.paramNames != null;
+  }
+
+  @Override
   public List<String> getParameterNames() throws PSQLException {
     if (this.paramNames == null) {
       throw new PSQLException(
@@ -545,16 +552,16 @@ class SimpleParameterList implements V3ParameterList {
 
   @Override
   public void appendAll(ParameterList list) throws SQLException {
-    if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
+    if (list instanceof org.postgresql.core.v3.SimpleParameterList) {
       /* only v3.SimpleParameterList is compatible with this type
       we need to create copies of our parameters, otherwise the values can be changed */
       SimpleParameterList spl = (SimpleParameterList) list;
       int inParamCount = spl.getInParameterCount();
       if ((pos + inParamCount) > paramValues.length) {
         throw new PSQLException(
-          GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
-              (pos + inParamCount), paramValues.length),
-              PSQLState.INVALID_PARAMETER_VALUE);
+            GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
+                (pos + inParamCount), paramValues.length),
+            PSQLState.INVALID_PARAMETER_VALUE);
       }
       System.arraycopy(spl.getValues(), 0, this.paramValues, pos, inParamCount);
       System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, pos, inParamCount);
@@ -566,6 +573,7 @@ class SimpleParameterList implements V3ParameterList {
 
   /**
    * Useful implementation of toString.
+   *
    * @return String representation of the list values
    */
   @Override

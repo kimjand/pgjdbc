@@ -52,7 +52,7 @@ public class ParseStatement {
   public boolean unique;
   @Param({"POSITIONAL", "NAMED", "NATIVE"})
   public ParameterContext.BindStyle bindStyle;
-  @Param({"0", "1", "5", "10", "20", "50", "100", "1000", "10000"})
+  @Param({"0", "1", "10", "20", "50", "100", "1000"})
   private int bindCount;
   private Connection connection;
 
@@ -67,6 +67,7 @@ public class ParseStatement {
   public void setUp() throws SQLException {
     Properties props = ConnectionUtil.getProperties();
     props.put("autosave", autoSave);
+    props.put("placeholderStyles", "any");
 
     connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
 
@@ -125,7 +126,7 @@ public class ParseStatement {
           break;
 
         case NATIVE:
-          ps.setInt("$_" + i, i);
+          ps.setInt("$" + i, i);
           break;
 
         default:

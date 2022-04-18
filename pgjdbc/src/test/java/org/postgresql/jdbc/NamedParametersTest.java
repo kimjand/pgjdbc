@@ -8,11 +8,13 @@ package org.postgresql.jdbc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGPreparedStatement;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.jdbc2.BatchExecuteTest;
+import org.postgresql.util.PSQLException;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,6 +26,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Properties;
 
 public class NamedParametersTest extends BaseTest4 {
@@ -36,10 +39,8 @@ public class NamedParametersTest extends BaseTest4 {
 
   @Test
   public void dontMix() throws Exception {
-    TestUtil.closeDB(con);
-    Properties props = new Properties();
-    PGProperty.PLACEHOLDER_STYLES.set(props, PlaceholderStyles.ANY.value());
-    con = TestUtil.openDB(props);
+    final PGConnection pgConnection = con.unwrap(PGConnection.class);
+    pgConnection.setPlaceholderStyle(PlaceholderStyles.ANY);
 
     try {
       con.prepareStatement("select ?+:dummy");
@@ -76,17 +77,63 @@ public class NamedParametersTest extends BaseTest4 {
   }
 
   @Test
+  public void testHasNamedParameters() throws SQLException {
+    String sql = "SELECT 'constant'";
+    try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+      Assert.assertFalse(testStmt.hasParameterNames());
+      final PSQLException psqlException = Assert.assertThrows(PSQLException.class, testStmt::getParameterNames);
+      Assert.assertEquals("The ParameterList was not created with named parameters.", psqlException.getMessage());
+    }
+
+    sql = "SELECT :myParam";
+    try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+      Assert.assertTrue(testStmt.hasParameterNames());
+      Assert.assertEquals(Collections.singletonList("myParam"), testStmt.getParameterNames());
+    }
+  }
+
+  @Test
   public void testMultiDigit() throws Exception {
     StringBuilder sb = new StringBuilder();
-    sb.append("SELECT :p1");
-    for ( int i = 2; i < 10002; i++) {
-      sb.append(",:p").append(i);
+    sb.append("SELECT ");
+    for ( int i = 0; i <= 10000; i++) {
       if (i % 10 == 0) {
         final String sql = sb.toString();
         try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
-          Assert.assertEquals(i, testStmt.getParameterNames().size());
+          Assert.assertEquals(i != 0, testStmt.hasParameterNames());
+          if ( i > 0 ) {
+            Assert.assertEquals(i, testStmt.getParameterNames().size());
+          }
         }
       }
+
+      if ( i > 0 ) {
+        sb.append(",");
+      }
+      sb.append(":p").append(i + 1);
+    }
+  }
+
+  @Test
+  public void testMultiDigitReuse() throws Exception {
+    final int parameterCount = 100;
+    StringBuilder sb = new StringBuilder();
+    sb.append("SELECT ");
+    for ( int i = 0; i <= 10000; i++) {
+      if (i % parameterCount == 0) {
+        final String sql = sb.toString();
+        try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+          Assert.assertEquals(i != 0, testStmt.hasParameterNames());
+          if ( i > 0 ) {
+            Assert.assertEquals(parameterCount, testStmt.getParameterNames().size());
+          }
+        }
+      }
+
+      if ( i > 0 ) {
+        sb.append(",");
+      }
+      sb.append(":p").append((i % parameterCount) + 1);
     }
   }
 

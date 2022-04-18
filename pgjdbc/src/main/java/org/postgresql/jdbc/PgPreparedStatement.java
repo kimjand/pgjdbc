@@ -1987,6 +1987,11 @@ class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
   }
 
   @Override
+  public boolean hasParameterNames() {
+    return preparedParameters.hasParameterNames();
+  }
+
+  @Override
   public List<String> getParameterNames() throws SQLException {
     return preparedParameters.getParameterNames();
   }
