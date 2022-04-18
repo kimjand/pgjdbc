@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.internal.Nullness;
+
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -206,7 +208,8 @@ public class ParameterContext {
         placeholderNameMap = new HashMap<>();
       }
       bindIndex = placeholderNameMap.computeIfAbsent(placeholderName, f -> {
-        int newIndex = placeholderNames.size();
+        // placeholderNames was initialized at line 201
+        int newIndex = Nullness.castNonNull(placeholderNames).size();
         placeholderNames.add(placeholderName);
         return newIndex;
       });
