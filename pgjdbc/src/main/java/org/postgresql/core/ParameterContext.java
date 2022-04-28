@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.PlaceholderStyles;
 import org.postgresql.util.internal.Nullness;
 
 import org.checkerframework.checker.index.qual.NonNegative;
@@ -28,6 +29,16 @@ import java.util.Map;
  * representation of the SQL text.
  */
 public class ParameterContext {
+
+  private final PlaceholderStyles allowedPlaceholderStyles;
+
+  public ParameterContext(PlaceholderStyles allowedPlaceholderStyles) {
+    this.allowedPlaceholderStyles = allowedPlaceholderStyles;
+  }
+
+  public PlaceholderStyles getAllowedPlaceholderStyles() {
+    return this.allowedPlaceholderStyles;
+  }
 
   public enum BindStyle {
     POSITIONAL(false), NAMED(true), NATIVE(true);
@@ -81,7 +92,7 @@ public class ParameterContext {
    * EMPTY_CONTEXT is immutable. Calling the add-methods will result in
    * UnsupportedOperationException begin thrown.
    */
-  public static final ParameterContext EMPTY_CONTEXT = new ParameterContext() {
+  public static final ParameterContext EMPTY_CONTEXT = new ParameterContext(PlaceholderStyles.ANY) {
     @Override
     public int addPositionalParameter(int position) throws SQLException {
       throw new UnsupportedOperationException();

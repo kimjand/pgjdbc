@@ -42,7 +42,7 @@ public class Parser {
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param quoteReturningIdentifiers whether to quote identifiers returned using returning clause
-   * @param placeholderStyles          whether non-standard placeholder are allowed or not
+   * @param allowedPlaceholderStyles  whether non-standard placeholder are allowed or not
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
    * @return list of native queries
    * @throws SQLException if unable to add returning clause (invalid column names)
@@ -51,7 +51,7 @@ public class Parser {
       boolean withParameters, boolean splitStatements,
       boolean isBatchedReWriteConfigured,
       boolean quoteReturningIdentifiers,
-      PlaceholderStyles placeholderStyles,
+      PlaceholderStyles allowedPlaceholderStyles,
       String... returningColumnNames) throws SQLException {
     if (!withParameters && !splitStatements
         && returningColumnNames != null && returningColumnNames.length == 0) {
@@ -66,7 +66,7 @@ public class Parser {
     char[] aChars = query.toCharArray();
 
     StringBuilder nativeSql = new StringBuilder(query.length() + 10);
-    ParameterContext paramCtx = new ParameterContext();
+    ParameterContext paramCtx = new ParameterContext(allowedPlaceholderStyles);
     List<NativeQuery> nativeQueries = null;
     boolean isCurrentReWriteCompatible = false;
     boolean isValuesFound = false;
@@ -110,7 +110,7 @@ public class Parser {
 
         case '$': { // possibly dollar quote start or a native placeholder
           int end = Parser.parseDollarQuotes(aChars, i);
-          if (end == i && (processParameters && placeholderStyleIsAccepted(placeholderStyles, PlaceholderStyles.NATIVE) && currentCommandType.supportsParameters())) {
+          if (end == i && (processParameters && PlaceholderStyles.NATIVE.placeholderStyleIsAccepted(allowedPlaceholderStyles)) && currentCommandType.supportsParameters()) {
             // look for a native placeholder instead.
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -200,7 +200,7 @@ public class Parser {
             isReturningPresent = false;
             if (splitStatements) {
               // Prepare for next query
-              paramCtx = new ParameterContext();
+              paramCtx = new ParameterContext(allowedPlaceholderStyles);
               nativeSql.setLength(0);
               isValuesFound = false;
               isCurrentReWriteCompatible = false;
@@ -212,7 +212,7 @@ public class Parser {
           break;
 
         case ':': // possibly named placerholder start'
-          if (processParameters && placeholderStyleIsAccepted(placeholderStyles, PlaceholderStyles.NAMED) && currentCommandType.supportsParameters()) {
+          if (processParameters && PlaceholderStyles.NAMED.placeholderStyleIsAccepted(allowedPlaceholderStyles) && currentCommandType.supportsParameters()) {
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
             int end = Parser.parseNamedPlaceholder(aChars, i);
@@ -1548,11 +1548,6 @@ public class Parser {
       throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR);
     }
     return i;
-  }
-
-  private static boolean placeholderStyleIsAccepted(
-      PlaceholderStyles setting, PlaceholderStyles placeholderStyles) {
-    return setting == PlaceholderStyles.ANY || setting == placeholderStyles;
   }
 
   private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};

@@ -84,7 +84,8 @@ public class NamedParametersTest extends BaseTest4 {
       final PSQLException psqlException = Assert.assertThrows(PSQLException.class, testStmt::getParameterNames);
       Assert.assertEquals("No parameter names are available, you need to call hasParameterNames "
           + "to verify the presence of any names.\n"
-          + "Perhaps you need to enable support for named placeholders?", psqlException.getMessage());
+          + "Perhaps you need to enable support for named placeholders? Current setting is: "
+          + "PLACEHOLDER_STYLES = ANY", psqlException.getMessage());
     }
 
     sql = "SELECT :myParam";

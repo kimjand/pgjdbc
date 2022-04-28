@@ -13,6 +13,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Utils;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
+import org.postgresql.jdbc.PlaceholderStyles;
 import org.postgresql.jdbc.UUIDArrayAssistant;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.ByteStreamWriter;
@@ -61,6 +62,7 @@ class SimpleParameterList implements V3ParameterList {
   private final byte[] flags;
   private final byte[] @Nullable [] encoded;
   private final @Nullable TypeTransferModeRegistry transferModeRegistry;
+  private final PlaceholderStyles allowedPlaceholderStyles;
   private int pos = 0;
 
   SimpleParameterList(int paramCount,
@@ -77,6 +79,7 @@ class SimpleParameterList implements V3ParameterList {
     this.encoded = new byte[paramCount][];
     this.flags = new byte[paramCount];
     this.transferModeRegistry = transferModeRegistry;
+    this.allowedPlaceholderStyles = parameterCtx.getAllowedPlaceholderStyles();
 
     if (parameterCtx.hasNamedParameters()) {
       // paramNameIndex will be used to perform index lookup in the various setter methods in
@@ -532,7 +535,10 @@ class SimpleParameterList implements V3ParameterList {
   public List<String> getParameterNames() throws PSQLException {
     if (this.paramNames == null) {
       throw new PSQLException(
-          GT.tr("No parameter names are available, you need to call hasParameterNames to verify the presence of any names.\nPerhaps you need to enable support for named placeholders?"),
+          GT.tr("No parameter names are available, you need to call hasParameterNames to verify the presence of any names.\n"
+              + "Perhaps you need to enable support for named placeholders? Current setting is: PLACEHOLDER_STYLES = {0}",
+              this.allowedPlaceholderStyles
+          ),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
     return this.paramNames.stream().map(f -> f.name).collect(Collectors.toList());

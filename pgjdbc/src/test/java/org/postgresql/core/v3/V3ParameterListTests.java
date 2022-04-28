@@ -33,13 +33,17 @@ import java.util.stream.Collectors;
 public class V3ParameterListTests {
 
   private static class TestParameterContext extends ParameterContext {
+    public TestParameterContext(PlaceholderStyles allowedPlaceholderStyles) {
+      super(allowedPlaceholderStyles);
+    }
+
     static ParameterContext buildNamed(List<Integer> placeholderPositions,
         List<String> placeholderNames) throws SQLException {
       if (placeholderPositions.size() != placeholderNames.size()) {
         throw new IllegalArgumentException("Length of placerholderPositions and placerholderNames"
             + " differ");
       }
-      final ParameterContext ctx = new ParameterContext();
+      final ParameterContext ctx = new ParameterContext(PlaceholderStyles.ANY);
       for (int i = 0; i < placeholderPositions.size(); i++) {
         ctx.addNamedParameter(placeholderPositions.get(i), BindStyle.NAMED, ":", placeholderNames.get(i));
       }
@@ -69,26 +73,26 @@ public class V3ParameterListTests {
   public void bogusPositions() throws SQLException {
     assertThrows(IllegalArgumentException.class,
         () -> {
-          final ParameterContext parameterContext = new ParameterContext();
+          final ParameterContext parameterContext = new ParameterContext(PlaceholderStyles.ANY);
           parameterContext.addPositionalParameter(0);
           parameterContext.addPositionalParameter(0);
         });
     assertThrows(IllegalArgumentException.class,
         () -> {
-          final ParameterContext parameterContext = new ParameterContext();
+          final ParameterContext parameterContext = new ParameterContext(PlaceholderStyles.ANY);
           parameterContext.addPositionalParameter(1);
           parameterContext.addPositionalParameter(0);
         });
 
     assertThrows(IllegalArgumentException.class,
         () -> {
-          final ParameterContext parameterContext = new ParameterContext();
+          final ParameterContext parameterContext = new ParameterContext(PlaceholderStyles.ANY);
           parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "", "dummy");
           parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "", "dummy2");
         });
     assertThrows(IllegalArgumentException.class,
         () -> {
-          final ParameterContext parameterContext = new ParameterContext();
+          final ParameterContext parameterContext = new ParameterContext(PlaceholderStyles.ANY);
           parameterContext.addNamedParameter(1, ParameterContext.BindStyle.NAMED, "", "dummy");
           parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "", "dummy2");
         });
