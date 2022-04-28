@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class V3ParameterListTests {
 
   private static class TestParameterContext extends ParameterContext {
-    public TestParameterContext(PlaceholderStyles allowedPlaceholderStyles) {
+    TestParameterContext(PlaceholderStyles allowedPlaceholderStyles) {
       super(allowedPlaceholderStyles);
     }
 

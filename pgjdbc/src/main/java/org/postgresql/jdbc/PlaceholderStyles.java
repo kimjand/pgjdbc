@@ -30,7 +30,7 @@ public enum PlaceholderStyles {
     return NONE;
   }
 
-  public boolean placeholderStyleIsAccepted(PlaceholderStyles setting){
+  public boolean placeholderStyleIsAccepted(PlaceholderStyles setting) {
     return setting == PlaceholderStyles.ANY || setting == this;
   }
 
