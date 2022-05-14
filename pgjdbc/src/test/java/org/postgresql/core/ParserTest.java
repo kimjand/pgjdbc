@@ -21,7 +21,6 @@ import org.junit.Test;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Test cases for the Parser.
@@ -450,8 +449,7 @@ public class ParserTest {
     expectedParameterNames.add("p2");
     expectedParameterNames.add("p3");
     expectedParameterNames.add("p1");
-    assertEquals(nativeQuery.parameterCtx.getPlaceholderNames().stream().map(f -> f.name).collect(
-        Collectors.toList()), expectedParameterNames);
+    assertEquals(nativeQuery.parameterCtx.getPlaceholderNames(), expectedParameterNames);
   }
 
   @Test

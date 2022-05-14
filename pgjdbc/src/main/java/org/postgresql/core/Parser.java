@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
  * @author Christopher Deckers (chrriis@gmail.com)
  */
 public class Parser {
-
   /**
    * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated
    * by semicolon.
@@ -120,8 +119,8 @@ public class Parser {
 
               // Keep the dollar in the captured name.
               final String bindName = query.substring(fragmentStart, end + 1);
-              final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), ParameterContext.BindStyle.NATIVE, "", bindName);
-              nativeSql.append("$").append(bindIndex);
+              final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), ParameterContext.BindStyle.NATIVE, bindName);
+              NativeQuery.appendBindName(nativeSql, bindIndex);
 
               i = end;
               fragmentStart = i + 1;
@@ -155,7 +154,7 @@ public class Parser {
               nativeSql.append('?');
             } else {
               int bindIndex = paramCtx.addPositionalParameter(nativeSql.length());
-              nativeSql.append("$").append(bindIndex);
+              NativeQuery.appendBindName(nativeSql, bindIndex);
             }
           }
           fragmentStart = i + 1;
@@ -221,8 +220,8 @@ public class Parser {
 
               // Skip the colon from the captured name.
               final String bindName = query.substring(fragmentStart + 1, end + 1);
-              final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), ParameterContext.BindStyle.NAMED, ":", bindName);
-              nativeSql.append("$").append(bindIndex);
+              final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), ParameterContext.BindStyle.NAMED, bindName);
+              NativeQuery.appendBindName(nativeSql, bindIndex);
 
               i = end;
               fragmentStart = i + 1;
@@ -318,15 +317,19 @@ public class Parser {
       // The order of appearance is not relevant here, the user has already specified the actual native positions.
       // The names must conform to the pattern $1..n and appear in increasing order.
 
-      final List<ParameterContext.PlaceholderName> placeholderNames =
+      final List<String> placeholderNames =
           paramCtx.getPlaceholderNames();
       for (int i = 0; i < placeholderNames.size(); i++ ) {
-        final ParameterContext.PlaceholderName placeholderName = placeholderNames.get(i);
-        if (placeholderName == ParameterContext.PlaceholderName.UNINITIALIZED) {
+        final String placeholderName = placeholderNames.get(i);
+        if (ParameterContext.uninitializedName.equals(placeholderName)) {
           throw new PSQLException(
               GT.tr("Native parameter ${0} was not found.\nThe following parameters where captured: {1}\nNative parameters must form a contiguous set of integers, starting from 1.",
                   (i + 1),
-                  placeholderNames.stream().filter(f -> f != ParameterContext.PlaceholderName.UNINITIALIZED).collect(Collectors.toList())),
+                  paramCtx
+                      .getPlaceholderNames()
+                      .stream()
+                      .filter(f -> !f.equals(ParameterContext.uninitializedName))
+                      .collect(Collectors.toList())),
               PSQLState.INVALID_PARAMETER_VALUE);
         }
       }

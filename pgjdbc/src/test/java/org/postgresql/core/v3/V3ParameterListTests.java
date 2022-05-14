@@ -22,7 +22,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Test cases to make sure the parameterlist implementation works as expected.
@@ -45,7 +44,7 @@ public class V3ParameterListTests {
       }
       final ParameterContext ctx = new ParameterContext(PlaceholderStyles.ANY);
       for (int i = 0; i < placeholderPositions.size(); i++) {
-        ctx.addNamedParameter(placeholderPositions.get(i), BindStyle.NAMED, ":", placeholderNames.get(i));
+        ctx.addNamedParameter(placeholderPositions.get(i), BindStyle.NAMED, placeholderNames.get(i));
       }
 
       return ctx;
@@ -87,14 +86,14 @@ public class V3ParameterListTests {
     assertThrows(IllegalArgumentException.class,
         () -> {
           final ParameterContext parameterContext = new ParameterContext(PlaceholderStyles.ANY);
-          parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "", "dummy");
-          parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "", "dummy2");
+          parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "dummy");
+          parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "dummy2");
         });
     assertThrows(IllegalArgumentException.class,
         () -> {
           final ParameterContext parameterContext = new ParameterContext(PlaceholderStyles.ANY);
-          parameterContext.addNamedParameter(1, ParameterContext.BindStyle.NAMED, "", "dummy");
-          parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "", "dummy2");
+          parameterContext.addNamedParameter(1, ParameterContext.BindStyle.NAMED, "dummy");
+          parameterContext.addNamedParameter(0, ParameterContext.BindStyle.NAMED, "dummy2");
         });
   }
 
@@ -150,7 +149,7 @@ public class V3ParameterListTests {
     assertThrows(UnsupportedOperationException.class,
         () -> ParameterContext.EMPTY_CONTEXT.addPositionalParameter(0));
     assertThrows(UnsupportedOperationException.class,
-        () -> ParameterContext.EMPTY_CONTEXT.addNamedParameter(0, ParameterContext.BindStyle.NAMED,"", "dummy"));
+        () -> ParameterContext.EMPTY_CONTEXT.addNamedParameter(0, ParameterContext.BindStyle.NAMED,"dummy"));
   }
 
   /**
@@ -197,12 +196,12 @@ public class V3ParameterListTests {
     qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyles.ANY);
     nativeQuery = qry.get(0);
     Assert.assertTrue(nativeQuery.parameterCtx.hasNamedParameters());
-    Assert.assertEquals(Collections.singletonList("a"),nativeQuery.parameterCtx.getPlaceholderNames().stream().map(f -> f.name).collect(Collectors.toList()));
+    Assert.assertEquals(Collections.singletonList("a"),nativeQuery.parameterCtx.getPlaceholderNames());
 
     query = "SELECT $1";
     qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyles.ANY);
     nativeQuery = qry.get(0);
     Assert.assertTrue(nativeQuery.parameterCtx.hasNamedParameters());
-    Assert.assertEquals(Collections.singletonList("$1"),nativeQuery.parameterCtx.getPlaceholderNames().stream().map(f -> f.name).collect(Collectors.toList()));
+    Assert.assertEquals(Collections.singletonList("$1"),nativeQuery.parameterCtx.getPlaceholderNames());
   }
 }

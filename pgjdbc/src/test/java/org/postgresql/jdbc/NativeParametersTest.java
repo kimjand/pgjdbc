@@ -117,9 +117,11 @@ public class NativeParametersTest extends BaseTest4 {
   @Test
   public void testHasNamedParameters() throws SQLException {
     String sql = "SELECT 'constant'";
-    try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+    try (PGPreparedStatement testStmt = con.prepareStatement(sql)
+        .unwrap(PGPreparedStatement.class)) {
       Assert.assertFalse(testStmt.hasParameterNames());
-      final PSQLException psqlException = Assert.assertThrows(PSQLException.class, testStmt::getParameterNames);
+      final PSQLException psqlException =
+          Assert.assertThrows(PSQLException.class, testStmt::getParameterNames);
       Assert.assertEquals("No parameter names are available, you need to call hasParameterNames "
           + "to verify the presence of any names.\n"
           + "Perhaps you need to enable support for named placeholders? Current setting is: "
@@ -127,7 +129,8 @@ public class NativeParametersTest extends BaseTest4 {
     }
 
     sql = "SELECT $1";
-    try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+    try (PGPreparedStatement testStmt = con.prepareStatement(sql)
+        .unwrap(PGPreparedStatement.class)) {
       Assert.assertTrue(testStmt.hasParameterNames());
       Assert.assertEquals(Collections.singletonList("$1"), testStmt.getParameterNames());
     }
@@ -137,18 +140,19 @@ public class NativeParametersTest extends BaseTest4 {
   public void testMultiDigit() throws Exception {
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
-    for ( int i = 0; i <= 10000; i++) {
+    for (int i = 0; i <= 10000; i++) {
       if (i % 10 == 0) {
         final String sql = sb.toString();
-        try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+        try (PGPreparedStatement testStmt = con.prepareStatement(sql)
+            .unwrap(PGPreparedStatement.class)) {
           Assert.assertEquals(i != 0, testStmt.hasParameterNames());
-          if ( i > 0 ) {
+          if (i > 0) {
             Assert.assertEquals(i, testStmt.getParameterNames().size());
           }
         }
       }
 
-      if ( i > 0 ) {
+      if (i > 0) {
         sb.append(",");
       }
       sb.append("$").append(i + 1);
@@ -160,18 +164,19 @@ public class NativeParametersTest extends BaseTest4 {
     final int parameterCount = 100;
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
-    for ( int i = 0; i <= 10000; i++) {
+    for (int i = 0; i <= 10000; i++) {
       if (i % parameterCount == 0) {
         final String sql = sb.toString();
-        try (PGPreparedStatement testStmt = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+        try (PGPreparedStatement testStmt = con.prepareStatement(sql)
+            .unwrap(PGPreparedStatement.class)) {
           Assert.assertEquals(i != 0, testStmt.hasParameterNames());
-          if ( i > 0 ) {
+          if (i > 0) {
             Assert.assertEquals(parameterCount, testStmt.getParameterNames().size());
           }
         }
       }
 
-      if ( i > 0 ) {
+      if (i > 0) {
         sb.append(",");
       }
       sb.append(",$").append((i % parameterCount) + 1);

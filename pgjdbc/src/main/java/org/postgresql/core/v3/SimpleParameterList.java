@@ -13,7 +13,6 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Utils;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
-import org.postgresql.jdbc.PlaceholderStyles;
 import org.postgresql.jdbc.UUIDArrayAssistant;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.ByteStreamWriter;
@@ -31,10 +30,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Parameter list for a single-statement V3 query.
@@ -55,14 +51,12 @@ class SimpleParameterList implements V3ParameterList {
    * to null".
    */
   private static final Object NULL_OBJECT = new Object();
-  private final @Nullable Map<String, Integer> paramNameIndex;
-  private final @Nullable List<ParameterContext.PlaceholderName> paramNames;
   private final @Nullable Object[] paramValues;
   private final int[] paramTypes;
   private final byte[] flags;
   private final byte[] @Nullable [] encoded;
   private final @Nullable TypeTransferModeRegistry transferModeRegistry;
-  private final PlaceholderStyles allowedPlaceholderStyles;
+  private final ParameterContext parameterCtx;
   private int pos = 0;
 
   SimpleParameterList(int paramCount,
@@ -79,23 +73,7 @@ class SimpleParameterList implements V3ParameterList {
     this.encoded = new byte[paramCount][];
     this.flags = new byte[paramCount];
     this.transferModeRegistry = transferModeRegistry;
-    this.allowedPlaceholderStyles = parameterCtx.getAllowedPlaceholderStyles();
-
-    if (parameterCtx.hasNamedParameters()) {
-      // paramNameIndex will be used to perform index lookup in the various setter methods in
-      // PgPreparedStatement
-
-      this.paramNames = parameterCtx.getPlaceholderNames();
-      this.paramNameIndex = new HashMap<>((int) (paramCount / 0.75) + 1);
-
-      for (int i = 0; i < paramCount; i++) {
-        final ParameterContext.PlaceholderName placeholderName = this.paramNames.get(i);
-        this.paramNameIndex.put(placeholderName.name, i + 1);
-      }
-    } else {
-      this.paramNames = null;
-      this.paramNameIndex = null;
-    }
+    this.parameterCtx = parameterCtx;
   }
 
   @Override
@@ -226,11 +204,7 @@ class SimpleParameterList implements V3ParameterList {
     --index;
     Object paramValue = paramValues[index];
     if (paramValue == null) {
-      if (paramNames == null) {
-        return "?";
-      } else {
-        return paramNames.get(index).prefixedName;
-      }
+      return this.parameterCtx.getPlaceholderNameForToString(index);
     } else if (paramValue == NULL_OBJECT) {
       return "NULL";
     } else if ((flags[index] & BINARY) == BINARY) {
@@ -509,39 +483,39 @@ class SimpleParameterList implements V3ParameterList {
 
   @Override
   public int getIndex(String parameterName) throws PSQLException {
-    if (this.paramNameIndex == null) {
+    if (!this.parameterCtx.hasNamedParameters()) {
       throw new PSQLException(
           GT.tr("The ParameterList was not created with named parameters."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    final Integer index = this.paramNameIndex.get(parameterName);
+    final Integer index = this.parameterCtx.getPlaceholderIndex(parameterName);
 
     if (index == null) {
       throw new PSQLException(
           GT.tr("The parameterName was not found : {0}. The following names are known : \n\t {1}",
-              parameterName, this.paramNames), PSQLState.INVALID_PARAMETER_VALUE);
+              parameterName, this.parameterCtx.getPlaceholderNames()), PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    return index;
+    return index + 1;
   }
 
   @Override
   public boolean hasParameterNames() {
-    return this.paramNames != null;
+    return this.parameterCtx.hasNamedParameters();
   }
 
   @Override
   public List<String> getParameterNames() throws PSQLException {
-    if (this.paramNames == null) {
+    if (!this.parameterCtx.hasNamedParameters()) {
       throw new PSQLException(
           GT.tr("No parameter names are available, you need to call hasParameterNames to verify the presence of any names.\n"
               + "Perhaps you need to enable support for named placeholders? Current setting is: PLACEHOLDER_STYLES = {0}",
-              this.allowedPlaceholderStyles
+              this.parameterCtx.getAllowedPlaceholderStyles()
           ),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-    return this.paramNames.stream().map(f -> f.name).collect(Collectors.toList());
+    return this.parameterCtx.getPlaceholderNames();
   }
 
   public int[] getParamTypes() {

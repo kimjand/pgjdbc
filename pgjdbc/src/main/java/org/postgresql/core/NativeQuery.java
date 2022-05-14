@@ -65,10 +65,11 @@ public class NativeQuery {
       if (parameters != null) {
         param = parameters.toString(i, true);
       } else {
-        if (parameterCtx.hasNamedParameters()) {
-          param = ":" + parameterCtx.getPlaceholderName(i);
+        final ParameterContext.BindStyle bindStyle = parameterCtx.getBindStyle();
+        if (bindStyle.isNamedParameter) {
+          param = parameterCtx.getPlaceholderNameForToString(i);
         } else {
-          param = "?";
+          param = bindStyle.prefix;
         }
       }
       params[i - 1] = param;
@@ -98,13 +99,8 @@ public class NativeQuery {
     return index < BIND_NAMES.length ? BIND_NAMES[index] : "$" + index;
   }
 
-  public static StringBuilder appendBindName(StringBuilder sb, int index) {
-    if (index < BIND_NAMES.length) {
-      return sb.append(bindName(index));
-    }
-    sb.append('$');
-    sb.append(index);
-    return sb;
+  public static void appendBindName(StringBuilder sb, int index) {
+    sb.append(bindName(index));
   }
 
   /**
