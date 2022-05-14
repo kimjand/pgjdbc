@@ -204,7 +204,7 @@ class SimpleParameterList implements V3ParameterList {
     --index;
     Object paramValue = paramValues[index];
     if (paramValue == null) {
-      return this.parameterCtx.getPlaceholderNameForToString(index);
+      return this.parameterCtx.getPlaceholderForToString(index);
     } else if (paramValue == NULL_OBJECT) {
       return "NULL";
     } else if ((flags[index] & BINARY) == BINARY) {
@@ -489,7 +489,7 @@ class SimpleParameterList implements V3ParameterList {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    final Integer index = this.parameterCtx.getPlaceholderIndex(parameterName);
+    final Integer index = this.parameterCtx.getNativeParameterIndexForPlaceholderName(parameterName);
 
     if (index == null) {
       throw new PSQLException(

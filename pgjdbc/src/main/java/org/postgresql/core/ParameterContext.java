@@ -9,6 +9,7 @@ import org.postgresql.jdbc.PlaceholderStyles;
 import org.postgresql.util.internal.Nullness;
 
 import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -37,11 +38,13 @@ public class ParameterContext {
   }
 
   public PlaceholderStyles getAllowedPlaceholderStyles() {
-    return this.allowedPlaceholderStyles;
+    return allowedPlaceholderStyles;
   }
 
   public enum BindStyle {
-    POSITIONAL(false, "?"), NAMED(true, ":"), NATIVE(true, "$");
+    POSITIONAL(false, "?"),
+    NAMED(true, ":"),
+    NATIVE(true, "$");
 
     public final boolean isNamedParameter;
     public final String prefix;
@@ -72,8 +75,8 @@ public class ParameterContext {
   private @Nullable BindStyle bindStyle = null;
   private @Nullable List<Integer> placeholderPositions = null;
   private @Nullable List<String> placeholderNames = null;
-  private @Nullable Map<String, Integer> placeholderNameToNativePositionMap = null;
-  private @Nullable List<Integer> placeholderAtPosition = null;
+  private @Nullable Map<String, Integer> placeholderNameToNativeParameterIndex = null;
+  private @Nullable List<Integer> nativeParameterIndexOfPlaceholderIndex = null;
 
   /**
    * Adds a positional parameter to this ParameterContext. Once a positional parameter have been
@@ -86,15 +89,10 @@ public class ParameterContext {
    */
   public int addPositionalParameter(@NonNegative int position) throws SQLException {
     checkAndSetBindStyle(BindStyle.POSITIONAL);
-    int bindIndex = checkAndAddPosition(position);
 
-    if (placeholderAtPosition == null) {
-      placeholderAtPosition = new ArrayList<>();
-    }
-
-    placeholderAtPosition.add(bindIndex);
-
-    return bindIndex + 1;
+    // There is a 1-1 correspondence between positional and the associated native parameter:
+    int nativeParameterIndex = checkAndAddPlaceholderPosition(position);
+    return checkAndAddNativeParameterIndexForPlaceholderIndex(nativeParameterIndex);
   }
 
   public boolean hasParameters() {
@@ -102,43 +100,35 @@ public class ParameterContext {
   }
 
   public boolean hasNamedParameters() {
-    return placeholderNames != null && !placeholderNames.isEmpty();
+    return hasParameters() && getBindStyle().isNamedParameter;
   }
 
   public BindStyle getBindStyle() {
-    if (bindStyle == null) {
-      throw new IllegalStateException(
-          "No bindStyle was registered, did you call hasNamedParameters() first?");
-    }
-    return this.bindStyle;
+    return checkBindStyleSet();
   }
 
   /**
    * @param placeholderName name of the placeholder to lookup
    * @return The backend parameter position corresponding to this name
    */
-  public @Nullable Integer getPlaceholderIndex(@NonNull String placeholderName) {
-    switch (this.getBindStyle()) {
-      case NAMED:
-        if (placeholderNameToNativePositionMap == null) {
-          return null;
+  public @Nullable Integer getNativeParameterIndexForPlaceholderName(@NonNull String placeholderName) {
+    BindStyle style = getBindStyle();
+    if (style == BindStyle.NAMED) {
+      if (placeholderNameToNativeParameterIndex == null) {
+        return null;
+      }
+    } else if (style == BindStyle.NATIVE) {
+      if (placeholderNameToNativeParameterIndex == null) {
+        placeholderNameToNativeParameterIndex = new HashMap<>(placeholderCount());
+        for (int i = 0; i < placeholderCount(); i++) {
+          Nullness.castNonNull(placeholderNameToNativeParameterIndex).put(NativeQuery.bindName(i + 1), i);
         }
-        break;
-
-      case NATIVE:
-        if (placeholderNameToNativePositionMap == null) {
-          placeholderNameToNativePositionMap = new HashMap<>(placeholderCount());
-          for (int i = 0; i < placeholderCount(); i++) {
-            Nullness.castNonNull(placeholderNameToNativePositionMap).put(NativeQuery.bindName(i + 1), i);
-          }
-        }
-        break;
-
-      default:
-        throw new IllegalArgumentException(
-            "bindStyle " + bindStyle + " does not support getPlaceholderIndex");
+      }
+    } else {
+      throw new IllegalArgumentException(
+          "bindStyle " + bindStyle + " does not support getNativeParameterIndexForPlaceholderName");
     }
-    return Nullness.castNonNull(placeholderNameToNativePositionMap).get(placeholderName);
+    return Nullness.castNonNull(placeholderNameToNativeParameterIndex).get(placeholderName);
   }
 
   /**
@@ -146,19 +136,31 @@ public class ParameterContext {
    * @return The name of the placeholder at this backend parameter position
    */
   public String getPlaceholderName(@NonNull Integer index) {
-    if (!this.hasNamedParameters()) {
+    if (!hasNamedParameters()) {
       throw new IllegalStateException(
           "No placeholder names are available, did you call hasParameters() first?");
     }
     return Nullness.castNonNull(placeholderNames).get(index);
   }
 
-  public String getPlaceholderNameForToString(@NonNull Integer index) {
-    if (this.getBindStyle() == BindStyle.NAMED) {
-      return BindStyle.NAMED.prefix + this.getPlaceholderName(index);
+  /**
+   * @param index 1-based index of the parameter for which to return a placeholder string.
+   * @return Returns the placeholder for the specified position, with the appropriate prefix according to the type of placeholder.
+   */
+  public String getPlaceholderForToString(@NonNull @Positive Integer index) {
+    final BindStyle bindStyle = checkBindStyleSet();
+
+    if (!getBindStyle().isNamedParameter) {
+      return bindStyle.prefix;
     }
 
-    return this.getPlaceholderName(index);
+    if (bindStyle == BindStyle.NAMED) {
+      return BindStyle.NAMED.prefix + getPlaceholderName(index);
+    } else if (bindStyle == BindStyle.NATIVE) {
+      return getPlaceholderName(index);
+    }
+    throw new IllegalStateException(
+        "bindStyle " + bindStyle + " is not not a valid option for getPlaceholderForToString");
   }
 
   /**
@@ -174,15 +176,15 @@ public class ParameterContext {
   }
 
   /**
-   * @param i 0-indexed position in the order of appearance
-   * @return The position of the placeholder in the order of first appearance of each placeholder
+   * @param i 0-based index of the placeholder occurrence in the SQL text.
+   * @return The 0-based index of the native parameter corresponding to the specified placeholder.
    */
-  public int getPlaceholderAtPosition(@NonNegative int i) {
-    if (placeholderAtPosition == null || placeholderAtPosition.isEmpty()) {
+  public int getNativeParameterIndexForPlaceholderIndex(@NonNegative int i) {
+    if (nativeParameterIndexOfPlaceholderIndex == null || nativeParameterIndexOfPlaceholderIndex.isEmpty()) {
       throw new IllegalStateException(
-          "No placeholder positions are available, did you call hasParameters() first?");
+          "No placeholder indexes are available, did you call hasParameters() first?");
     }
-    return placeholderAtPosition.get(i);
+    return nativeParameterIndexOfPlaceholderIndex.get(i);
   }
 
   public int getLastPlaceholderPosition() {
@@ -213,41 +215,47 @@ public class ParameterContext {
       throw new IllegalArgumentException(
           "bindStyle " + bindStyle + " is not not a valid option for addNamedParameter");
     }
-    checkAndSetBindStyle(bindStyle);
-    checkAndAddPosition(position);
-
-    if (placeholderNames == null) {
-      placeholderNames = new ArrayList<>();
+    if (bindName.equals(ParameterContext.uninitializedName)) {
+      throw new IllegalArgumentException(
+          "bindName " + bindName + " is not a valid option for addNamedParameter");
     }
+    checkAndSetBindStyle(bindStyle);
+    checkAndAddPlaceholderPosition(position);
 
-    int bindIndex;
+    // Determine if this bindName already has a corresponding nativeParameterIndex.
+    int nativeParameterIndex;
 
     if (bindStyle == BindStyle.NAMED) {
-      if (placeholderNameToNativePositionMap == null) {
-        placeholderNameToNativePositionMap = new HashMap<>();
+      if (placeholderNameToNativeParameterIndex == null) {
+        placeholderNameToNativeParameterIndex = new HashMap<>();
       }
-      bindIndex = placeholderNameToNativePositionMap.computeIfAbsent(bindName, f -> {
-        // placeholderNames was initialized at line 174
-        int newIndex = Nullness.castNonNull(placeholderNames).size();
+      nativeParameterIndex = placeholderNameToNativeParameterIndex.computeIfAbsent(bindName, f -> {
+        final List<String> placeholderNames = checkAndInitializePlaceholderNames();
+        int newIndex = placeholderNames.size();
         placeholderNames.add(bindName);
         return newIndex;
       });
     } else if (bindStyle == BindStyle.NATIVE) {
-      bindIndex = Integer.parseInt(bindName.substring(1)) - 1;
-      while (placeholderNames.size() <= bindIndex) {
+      nativeParameterIndex = Integer.parseInt(bindName.substring(1)) - 1;
+      final List<String> placeholderNames = checkAndInitializePlaceholderNames();
+      while (placeholderNames.size() <= nativeParameterIndex) {
         placeholderNames.add(ParameterContext.uninitializedName);
       }
-      placeholderNames.set(bindIndex, bindName);
+      placeholderNames.set(nativeParameterIndex, bindName);
     } else {
       throw new IllegalArgumentException(
           "bindStyle " + bindStyle + " is not a valid option for addNamedParameter");
     }
 
-    if (placeholderAtPosition == null) {
-      placeholderAtPosition = new ArrayList<>();
+    // Associate this occurrence of bindName to the native parameter nativeParameterIndex:
+    return checkAndAddNativeParameterIndexForPlaceholderIndex(nativeParameterIndex);
+  }
+
+  private List<String> checkAndInitializePlaceholderNames() {
+    if (placeholderNames == null) {
+      placeholderNames = new ArrayList<>();
     }
-    placeholderAtPosition.add(bindIndex);
-    return bindIndex + 1;
+    return placeholderNames;
   }
 
   /**
@@ -261,9 +269,21 @@ public class ParameterContext {
    * @return Returns the number of parameter to be sent to the backend.
    */
   public int nativeParameterCount() {
-    return placeholderNames != null ? placeholderNames.size() : placeholderCount();
+    if (!hasParameters()) {
+      return 0;
+    }
+    if (getBindStyle().isNamedParameter) {
+      // For named parameters, we only need to send a native parameter for each unique name.
+      return placeholderNames == null ? 0 : placeholderNames.size();
+    } else {
+      // If the parameters aren't named we simply return the number of placeholders.
+      return placeholderCount();
+    }
   }
 
+  /**
+   * @return Returns the starting positions of placeholders in the SQL text
+   */
   public List<Integer> getPlaceholderPositions() {
     return placeholderPositions == null ? Collections.emptyList() : placeholderPositions;
   }
@@ -275,7 +295,7 @@ public class ParameterContext {
     if (placeholderNames == null) {
       throw new IllegalStateException("Call hasNamedParameters() first.");
     }
-    return Collections.unmodifiableList(this.placeholderNames);
+    return Collections.unmodifiableList(placeholderNames);
   }
 
   private void checkAndSetBindStyle(BindStyle bindStyle) throws SQLException {
@@ -287,7 +307,18 @@ public class ParameterContext {
     }
   }
 
-  private int checkAndAddPosition(@NonNegative int position) throws SQLException {
+  private BindStyle checkBindStyleSet() {
+    if (bindStyle == null) {
+      throw new IllegalStateException("Call hasParameters() first.");
+    }
+    return bindStyle;
+  }
+
+  /**
+   * @param position The position in the SQL Text to be registered as the start of a placeholder.
+   * @return Returns the index of the registered Placeholder position
+   */
+  private int checkAndAddPlaceholderPosition(@NonNegative int position) {
     if (hasParameters() && position <= getLastPlaceholderPosition()) {
       throw new IllegalArgumentException("Parameters must be processed in increasing order."
           + "position = " + position + ", LastPlaceholderPosition = "
@@ -298,5 +329,13 @@ public class ParameterContext {
     }
     placeholderPositions.add(position);
     return placeholderPositions.size() - 1;
+  }
+
+  private int checkAndAddNativeParameterIndexForPlaceholderIndex(@Positive int nativeParameterIndex) {
+    if (nativeParameterIndexOfPlaceholderIndex == null) {
+      nativeParameterIndexOfPlaceholderIndex = new ArrayList<>();
+    }
+    nativeParameterIndexOfPlaceholderIndex.add(nativeParameterIndex);
+    return nativeParameterIndex + 1;
   }
 }

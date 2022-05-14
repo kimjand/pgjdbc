@@ -59,27 +59,22 @@ public class NativeQuery {
     }
 
     int queryLength = nativeSql.length();
-    String[] params = new String[parameterCtx.nativeParameterCount()];
+    String[] nativeParams = new String[parameterCtx.nativeParameterCount()];
     for (int i = 1; i <= parameterCtx.nativeParameterCount(); ++i) {
       final String param;
       if (parameters != null) {
         param = parameters.toString(i, true);
       } else {
-        final ParameterContext.BindStyle bindStyle = parameterCtx.getBindStyle();
-        if (bindStyle.isNamedParameter) {
-          param = parameterCtx.getPlaceholderNameForToString(i);
-        } else {
-          param = bindStyle.prefix;
-        }
+        param = parameterCtx.getPlaceholderForToString(i);
       }
-      params[i - 1] = param;
+      nativeParams[i - 1] = param;
       queryLength += param.length() - bindName(i).length();
     }
 
     StringBuilder sbuf = new StringBuilder(queryLength);
     sbuf.append(nativeSql, 0, parameterCtx.getPlaceholderPosition(0));
     for (int i = 1; i <= this.parameterCtx.placeholderCount(); ++i) {
-      sbuf.append(params[parameterCtx.getPlaceholderAtPosition(i - 1)]);
+      sbuf.append(nativeParams[parameterCtx.getNativeParameterIndexForPlaceholderIndex(i - 1)]);
       int nextBind = i < this.parameterCtx.placeholderCount()
           ? parameterCtx.getPlaceholderPosition(i)
           : nativeSql.length();

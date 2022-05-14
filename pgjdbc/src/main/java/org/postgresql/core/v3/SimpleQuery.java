@@ -325,7 +325,7 @@ class SimpleQuery implements Query {
   }
 
   public final int getBindCount() {
-    return nativeQuery.parameterCtx.placeholderCount() * getBatchSize();
+    return nativeQuery.parameterCtx.nativeParameterCount() * getBatchSize();
   }
 
   private @Nullable Map<String, Integer> resultSetColumnNameIndexMap;
