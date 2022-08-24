@@ -44,6 +44,9 @@ public class SqlCommandParseTest {
         {SqlCommandType.UPDATE, "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) returning a, b) update tab set somecol = 'dummy' WHERE tab.col = x.col"},
         // No idea if it works, but it should be parsed as WITH
         {SqlCommandType.WITH, "with update as (update foo set (a=?,b=?,c=?)) copy from stdin"},
+        {SqlCommandType.CALL, "call fooprocedure(:a, :b)"},
+        {SqlCommandType.CALL, "call fooprocedure(?, ?)"},
+        {SqlCommandType.CALL, "call myschema.fooprocedure(?, ?)"},
     });
   }
 

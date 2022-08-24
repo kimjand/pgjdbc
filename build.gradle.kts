@@ -353,7 +353,7 @@ allprojects {
                     addBooleanOption("html5", true)
                     links("https://docs.oracle.com/javase/9/docs/api/")
                 } else {
-                    links("https://docs.oracle.com/javase/8/docs/api/")
+                    //links("https://docs.oracle.com/javase/8/docs/api/")
                 }
             }
         }

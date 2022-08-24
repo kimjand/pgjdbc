@@ -210,6 +210,30 @@ public class CompositeQueryParseTest {
         reparse("select 1;/* noop */;select 2", true, false, true));
   }
 
+  @Test
+  public void testCallNamedParameters() throws SQLException {
+    List<NativeQuery> queries;
+    queries = Parser.parseJdbcSql("call fooprocedure(:a, :b)", true, true, false, true, true, PlaceholderStyles.ANY);
+    NativeQuery query = queries.get(0);
+    assertEquals("call named procedure", SqlCommandType.CALL, query.command.getType());
+  }
+
+  @Test
+  public void testCall() throws SQLException {
+    List<NativeQuery> queries;
+    queries = Parser.parseJdbcSql("call fooprocedure(?, ?)", true, true, false, true, true, PlaceholderStyles.ANY);
+    NativeQuery query = queries.get(0);
+    assertEquals("call ... procedure", SqlCommandType.CALL, query.command.getType());
+  }
+
+  @Test
+  public void testCallWithSchema() throws SQLException {
+    List<NativeQuery> queries;
+    queries = Parser.parseJdbcSql("call myschema.fooprocedure(?, ?)", true, true, false, true, true, PlaceholderStyles.ANY);
+    NativeQuery query = queries.get(0);
+    assertEquals("call ... with schema", SqlCommandType.CALL, query.command.getType());
+  }
+
   private String reparse(String query, boolean standardConformingStrings, boolean withParameters,
       boolean splitStatements) {
     try {
