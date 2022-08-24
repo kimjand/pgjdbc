@@ -211,7 +211,7 @@ public class Parser {
           break;
 
         case ':': // possibly named placerholder start'
-          if (processParameters && PlaceholderStyles.NAMED.placeholderStyleIsAccepted(allowedPlaceholderStyles) && currentCommandType.supportsParameters()) {
+          if (processParameters && PlaceholderStyles.NAMED.placeholderStyleIsAccepted(allowedPlaceholderStyles) /*&& currentCommandType.supportsParameters()*/) {
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
             int end = Parser.parseNamedPlaceholder(aChars, i);
@@ -276,6 +276,8 @@ public class Parser {
             currentCommandType = SqlCommandType.SELECT;
           } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.WITH;
+          } else if (wordLength == 4 && parseCallKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.CALL;
           } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
             if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
               // Only allow rewrite for insert command starting with the insert keyword.
@@ -888,6 +890,24 @@ public class Parser {
         && (query[offset + 1] | 32) == 'i'
         && (query[offset + 2] | 32) == 't'
         && (query[offset + 3] | 32) == 'h';
+  }
+
+  /**
+   * Parse string to check presence of WITH keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseCallKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 4)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'c'
+        && (query[offset + 1] | 32) == 'a'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'l';
   }
 
   /**
